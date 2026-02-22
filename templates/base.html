@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title if title else "Pallet Tracker" }}</title>
+
+  <!-- Tailwind (fast MVP) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine for modals/toasts -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Pallet Tracker</h1>
+        <p class="text-slate-500 text-sm">Quick stock view without running to the chiller.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+          Dashboard
+        </a>
+	      <a href="/history" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+        History
+        </a>
+        <a href="/add" class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+          Add pallet
+        </a>
+        <a href="/logout"
+        class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+        Logout
+        </a>
+      </div>
+    </header>
+
+
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

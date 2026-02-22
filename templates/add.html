@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% set title = "Add pallet" %}
+
+{% block content %}
+
+
+<link rel="stylesheet" href="/static/style.css">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+       x-data="{ occupied: {{ 'true' if occupied else 'false' }}, invalid: {{ 'true' if invalid else 'false' }} }">
+
+    <h2 class="text-lg font-semibold">Add pallet</h2>
+    <p class="text-slate-500 text-sm mt-1">Fill in details and save.</p>
+
+    {% if error %}
+      <div class="mt-4 bg-slate-900 text-white rounded-2xl px-4 py-3 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/add" class="mt-5 space-y-4">
+      <div>
+        <label class="text-sm text-slate-600">Category name</label>
+        <input name="category_name" value="{{ values.get('category_name','') }}" required
+               placeholder="e.g. Easy Peelers 1kg boxes"
+               class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm text-slate-600">Location</label>
+          <input name="location_code" value="{{ values.get('location_code','') }}" required
+                 placeholder="e.g. L03C"
+                 class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 font-mono" />
+          <div class="text-xs text-slate-500 mt-1">Format: K–Q + 01–30 + A–C (example: L03C).</div>
+        </div>
+
+        <div>
+          <label class="text-sm text-slate-600">Punnets</label>
+          <input name="punnets" value="{{ values.get('punnets','') }}" required type="number" min="0"
+                 placeholder="e.g. 11000"
+                 class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-600">Description (optional)</label>
+        <input name="description" value="{{ values.get('description','') }}"
+               placeholder="e.g. Tray 2 / 8 boxes x 1375"
+               class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+      </div>
+
+      <div class="flex gap-2">
+        <button class="px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+          Add pallet
+        </button>
+        <a href="/" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+          Cancel
+        </a>
+      </div>
+    </form>
+
+    <!-- Occupied modal -->
+    <div x-show="occupied" x-transition class="fixed inset-0 bg-black/20 grid place-items-center p-4">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-100 w-full max-w-md p-5">
+        <div class="text-lg font-semibold">Location occupied</div>
+        <p class="text-slate-600 mt-1 text-sm">{{ occupied }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="occupied=false"
+            class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invalid location modal -->
+    <div x-show="invalid" x-transition class="fixed inset-0 bg-black/20 grid place-items-center p-4">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-100 w-full max-w-md p-5">
+        <div class="text-lg font-semibold">Invalid location</div>
+        <p class="text-slate-600 mt-1 text-sm">{{ invalid }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="invalid=false"
+            class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+    <div class="text-sm text-slate-500">Quick rules</div>
+    <ul class="mt-2 space-y-2 text-sm">
+      <li class="flex gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-slate-300"></span><span>Only one pallet per location.</span></li>
+      <li class="flex gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-slate-300"></span><span>Rows K–Q, slots 01–30, levels A–C.</span></li>
+      <li class="flex gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-slate-300"></span><span>Total punnets is calculated from current pallets.</span></li>
+    </ul>
+  </div>
+
+  <div class="card import-card">
+    <h3>Import CSV</h3>
+
+    <form action="/import-csv" method="post" enctype="multipart/form-data" class="import-form">
+        <label class="file-label">
+            <input type="file" name="file" accept=".csv" required>
+            <span>Select CSV file</span>
+        </label>
+
+        <button type="submit" class="btn-primary">
+            Upload & Import
+        </button>
+    </form>
+</div>
+</div>
+{% endblock %}

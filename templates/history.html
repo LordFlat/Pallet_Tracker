@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% set title = "History" %}
+
+{% block content %}
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div>
+      <h2 class="text-lg font-semibold">History</h2>
+      <p class="text-slate-500 text-sm">Latest actions (add / remove / move).</p>
+    </div>
+
+    <form method="get" action="/history" class="flex items-center gap-2">
+      <input name="since" value="{{ since }}" placeholder="since (YYYY-MM-DD)"
+             class="px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+      <button class="px-3 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+        Apply
+      </button>
+    </form>
+  </div>
+</div>
+<div class="mb-4 flex justify-end">
+  <a href="/export/history"
+     class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+    Export to Excel
+  </a>
+</div>
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-slate-500">
+        <tr class="border-b border-slate-100">
+          <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">Pallet</th>
+          <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">Action</th>
+          <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">From</th>
+          <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">To</th>
+	  <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">Operator</th>
+          <th class="text-center font-medium px-2 py-2 sm:px-5 sm:py-3">Date / Time (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+  {% for e in events %}
+  <tr class="border-b border-slate-50 hover:bg-slate-50 transition">
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3 font-medium">{{ e.pallet_name }}</td>
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3">{{ e.action }}</td>
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3 font-mono">{{ e.from_location or "-" }}</td>
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3 font-mono">{{ e.to_location or "-" }}</td>
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3">{{ e.actor }}</td>
+    <td class="text-center px-2 py-2 sm:px-5 sm:py-3">{{ e.ts.strftime("%Y-%m-%d %H:%M") }}</td>
+  </tr>
+  {% endfor %}
+
+  {% if events|length == 0 %}
+  <tr>
+    <td colspan="6" class="px-5 py-10 text-center text-slate-500">
+      No events.
+    </td>
+  </tr>
+  {% endif %}
+</tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

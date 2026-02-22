@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set title = "Login" %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+  <h2 class="text-lg font-semibold">Operator login</h2>
+  <p class="text-slate-500 text-sm mt-1">Choose your name and enter PIN.</p>
+
+  {% if error %}
+    <div class="mt-4 bg-slate-900 text-white rounded-2xl px-4 py-3 text-sm">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/login" class="mt-5 space-y-4">
+    <div>
+      <label class="text-sm text-slate-600">Name</label>
+      <select name="name" class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200">
+        {% for n in names %}
+          <option value="{{ n }}">{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="text-sm text-slate-600">PIN</label>
+      <input name="pin" type="password" inputmode="numeric"
+             class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200"
+             placeholder="****" />
+    </div>
+
+    <button class="w-full px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+      Login
+    </button>
+  </form>
+</div>
+{% endblock %}

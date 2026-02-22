@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set title = "Move pallet" %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+       x-data="{ occupied: {{ 'true' if occupied else 'false' }}, invalid: {{ 'true' if invalid else 'false' }} }">
+
+    <h2 class="text-lg font-semibold">Move pallet</h2>
+    <p class="text-slate-500 text-sm mt-1">Move a pallet to a new location.</p>
+
+    {% if error %}
+      <div class="mt-4 bg-slate-900 text-white rounded-2xl px-4 py-3 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+        <div class="text-xs text-slate-500">Category</div>
+        <div class="font-medium mt-1">{{ pallet.category_name }}</div>
+      </div>
+      <div class="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+        <div class="text-xs text-slate-500">Current location</div>
+        <div class="font-mono font-medium mt-1">{{ pallet.location.code }}</div>
+      </div>
+    </div>
+
+    <form method="post" class="mt-5 space-y-4">
+      <div>
+        <label class="text-sm text-slate-600">New location</label>
+        <input name="to_location" value="{{ values.to_location }}" required
+               placeholder="e.g. L03C"
+               class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 font-mono" />
+        <div class="text-xs text-slate-500 mt-1">Format: K–Q + 01–30 + A–C (example: L03C).</div>
+      </div>
+
+      <div class="flex gap-2">
+        <button class="px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+          Move pallet
+        </button>
+        <a href="/" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+          Cancel
+        </a>
+      </div>
+    </form>
+
+    <!-- Occupied modal -->
+    <div x-show="occupied" x-transition class="fixed inset-0 bg-black/20 grid place-items-center p-4">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-100 w-full max-w-md p-5">
+        <div class="text-lg font-semibold">Location occupied</div>
+        <p class="text-slate-600 mt-1 text-sm">{{ occupied }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="occupied=false"
+            class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invalid modal -->
+    <div x-show="invalid" x-transition class="fixed inset-0 bg-black/20 grid place-items-center p-4">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-100 w-full max-w-md p-5">
+        <div class="text-lg font-semibold">Invalid location</div>
+        <p class="text-slate-600 mt-1 text-sm">{{ invalid }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="invalid=false"
+            class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+    <div class="text-sm text-slate-500">Tips</div>
+    <ul class="mt-2 space-y-2 text-sm">
+      <li class="flex gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-slate-300"></span><span>Use format like <span class="font-mono">L03C</span>.</span></li>
+      <li class="flex gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-slate-300"></span><span>Occupied target shows a clean modal.</span></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
