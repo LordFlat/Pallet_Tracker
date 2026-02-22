@@ -196,7 +196,7 @@ def parse_location(code: str):
     if not code:
         return None
     code = code.strip().upper()
-    m = re.fullmatch(r"([F-Q])\s*(\d{1,2})\s*([A-C])", code)
+    m = re.fullmatch(r"([J-Q])\s*(\d{1,2})\s*([A-C])", code)
     if not m:
         return None
 
@@ -240,7 +240,7 @@ def get_suggestions(db):
             continue
 
         # убираем то, что похоже на координаты: L1, L12, L12C
-        if re.fullmatch(r"[F-Q]\d{1,2}([A-C])?", n.upper()):
+        if re.fullmatch(r"[J-Q]\d{1,2}([A-C])?", n.upper()):
             continue
 
         out.append(n)
@@ -683,6 +683,7 @@ def reset_db(operator: str | None = Cookie(default=None)):
         db.commit()
 
     return {"status": "Pallets cleared"}
+
 
 
 
