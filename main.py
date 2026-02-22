@@ -666,10 +666,9 @@ async def import_csv(
 
     }
 
-
 from sqlalchemy import delete
 
-@app.post("/reset-db")
+@app.get("/reset-db")
 def reset_db(operator: str | None = Cookie(default=None)):
     if not operator:
         return {"error": "Not logged in"}
