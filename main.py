@@ -663,4 +663,20 @@ async def import_csv(
     return {
         "imported": imported,
         "errors": errors
+
     }
+
+
+from sqlalchemy import delete
+
+@app.post("/reset-db")
+def reset_db(operator: str | None = Cookie(default=None)):
+    if not operator:
+        return {"error": "Not logged in"}
+
+    with SessionLocal() as db:
+        db.execute(delete(Pallet))
+        db.execute(delete(EventLog))
+        db.commit()
+
+    return {"status": "Database cleared"}
