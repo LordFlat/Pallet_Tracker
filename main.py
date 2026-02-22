@@ -683,6 +683,25 @@ def reset_db(operator: str | None = Cookie(default=None)):
     return {"status": "Pallets cleared"}
 
 
+from sqlalchemy import delete
+
+@app.get("/rebuild-locations")
+def rebuild_locations(operator: str | None = Cookie(default=None)):
+    if not operator:
+        return {"error": "Not logged in"}
+
+    with SessionLocal() as db:
+        # удаляем все паллеты (иначе FK конфликт)
+        db.execute(delete(Pallet))
+        db.execute(delete(Location))
+        db.commit()
+
+    # пересоздаём все locations заново
+    init_db()
+
+    return {"status": "Locations rebuilt"}
+
+
 
 
 
