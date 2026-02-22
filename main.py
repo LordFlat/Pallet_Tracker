@@ -735,6 +735,22 @@ def debug_locations():
         count = db.execute(select(func.count(Location.id))).scalar_one()
     return {"rows": rows, "count": count}
 
+@app.get("/rebuild-locations")
+def rebuild_locations():
+    with SessionLocal() as db:
+        db.execute(delete(Location))
+        db.commit()
+
+        for r in ROWS:
+            slots = sorted(ALLOWED_SLOTS[r])
+            for lvl in LEVELS:
+                for s in slots:
+                    db.add(Location(row=r, slot=s, level=lvl))
+
+        db.commit()
+
+    return {"status": "Locations rebuilt"}
+
 
 
 
