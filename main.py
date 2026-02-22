@@ -685,12 +685,20 @@ def reset_db(operator: str | None = Cookie(default=None)):
 
 from sqlalchemy import delete
 
+from sqlalchemy import delete
+
 @app.get("/rebuild-locations")
 def rebuild_locations():
     with SessionLocal() as db:
+        # сначала удалить pallets (иначе FK ошибка)
+        db.execute(delete(Pallet))
+        db.commit()
+
+        # потом удалить locations
         db.execute(delete(Location))
         db.commit()
 
+        # создать заново
         for r in ROWS:
             slots = sorted(ALLOWED_SLOTS[r])
             for lvl in LEVELS:
@@ -699,7 +707,7 @@ def rebuild_locations():
 
         db.commit()
 
-    return {"status": "Locations rebuilt"}
+    return {"status": "Locations rebuilt clean"}
     
 @app.get("/init-db")
 def force_init_db():
@@ -714,6 +722,7 @@ def debug_j():
         ).scalars().all()
 
         return {"count": len(rows)}
+
 
 
 
