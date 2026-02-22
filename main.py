@@ -728,6 +728,14 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
     return {"status": "tables created"}
 
+@app.get("/debug-locations")
+def debug_locations():
+    with SessionLocal() as db:
+        rows = db.execute(select(Location.row).distinct()).scalars().all()
+        count = db.execute(select(func.count(Location.id))).scalar_one()
+    return {"rows": rows, "count": count}
+
+
 
 
 
