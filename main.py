@@ -44,14 +44,14 @@ ROWS = ["K", "L", "M", "N", "O", "P", "Q", "J"]
 LEVELS = ["A", "B", "C"]
 
 ALLOWED_SLOTS: dict[str, set[int]] = {
-    "J": set(range(4, 23))                       # Tray 1 only                       
+    "J": set(range(4, 23)),                      # Tray 1 only                       
     "K": set(range(4, 30)),                      # 04-29
     "L": set(range(4, 30)) - {13},               # 04-29 but no 13
     "M": set(range(4, 30)),                      # 04-29
     "N": set(range(4, 30)),                      # 04-29
     "O": set(range(18, 30)),                     # 18-29
     "P": set(range(16, 28)),                     # 16-27
-    "Q": set(range(1, 9)),                       # 01-08  
+    "Q": set(range(1, 9))                       # 01-08  
 }
 
 templates = Jinja2Templates(directory="templates")
@@ -777,6 +777,7 @@ def check_j_count():
             select(func.count()).where(Location.row == "J")
         ).scalar()
     return {"J_count": count}
+
 
 
 
