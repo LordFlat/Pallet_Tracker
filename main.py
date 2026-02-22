@@ -753,12 +753,23 @@ def rebuild_locations():
 
 from sqlalchemy import delete
 
+from sqlalchemy import delete
+
 @app.get("/force-rebuild-locations")
-def force_rebuild_locations():
+def force_rebuild_locations(operator: str | None = Cookie(default=None)):
+    if not operator:
+        return {"error": "Not logged in"}
+
     with SessionLocal() as db:
+        # 1. Удаляем паллеты
+        db.execute(delete(Pallet))
+
+        # 2. Удаляем локации
         db.execute(delete(Location))
+
         db.commit()
 
+        # 3. Пересоздаём локации
         for r in ROWS:
             slots = sorted(ALLOWED_SLOTS[r])
             for lvl in LEVELS:
@@ -767,7 +778,7 @@ def force_rebuild_locations():
 
         db.commit()
 
-    return {"status": "ALL locations rebuilt"}
+    return {"status": "Locations rebuilt clean"}
 
 
 @app.get("/check-j-count")
@@ -777,6 +788,7 @@ def check_j_count():
             select(func.count()).where(Location.row == "J")
         ).scalar()
     return {"J_count": count}
+
 
 
 
