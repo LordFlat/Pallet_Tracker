@@ -789,6 +789,16 @@ def check_j_count():
         ).scalar()
     return {"J_count": count}
 
+@app.get("/debug-find/{code}")
+def debug_find(code: str):
+    with SessionLocal() as db:
+        loc = find_location(db, code)
+        return {"found": bool(loc)}
+
+@app.get("/debug-db")
+def debug_db():
+    return {"db_url": DB_URL}
+
 
 
 
