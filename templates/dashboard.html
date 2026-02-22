@@ -5,36 +5,6 @@
 
 <link rel="stylesheet" href="/static/style.css">
 
-<!-- HEADER / NAV -->
-<div class="flex items-center justify-between mb-6">
-
-  <div class="text-xl font-semibold">
-    Pallet Tracker
-  </div>
-
-  <div class="relative">
-
-    <!-- Burger (mobile only) -->
-    <button onclick="toggleMenu()"
-            class="md:hidden px-3 py-2 rounded-lg bg-slate-900 text-white">
-      ☰
-    </button>
-
-    <!-- Navigation -->
-    <div id="mobileMenu"
-         class="hidden md:flex flex-col md:flex-row gap-3 mt-3 md:mt-0
-                bg-white md:bg-transparent p-4 md:p-0 rounded-xl shadow md:shadow-none
-                absolute md:static right-0 w-56 md:w-auto z-50">
-
-      <a href="/" class="block hover:underline">Dashboard</a>
-      <a href="/history" class="block hover:underline">History</a>
-      <a href="/add" class="block hover:underline">Add pallet</a>
-      <a href="/logout" class="block hover:underline">Logout</a>
-
-    </div>
-  </div>
-</div>
-
 <!-- SEARCH + TOTAL -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
 
@@ -205,3 +175,4 @@ function toggleMenu() {
 </script>
 
 {% endblock %}
+
