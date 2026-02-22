@@ -675,7 +675,7 @@ def reset_db(operator: str | None = Cookie(default=None)):
 
     with SessionLocal() as db:
         db.execute(delete(Pallet))
-        db.execute(delete(EventLog))
         db.commit()
 
-    return {"status": "Database cleared"}
+    return {"status": "Pallets cleared"}
+
