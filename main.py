@@ -44,14 +44,14 @@ ROWS = ["K", "L", "M", "N", "O", "P", "Q", "J"]
 LEVELS = ["A", "B", "C"]
 
 ALLOWED_SLOTS: dict[str, set[int]] = {
+    "J": set(range(4, 23))                       # Tray 1 only                       
     "K": set(range(4, 30)),                      # 04-29
     "L": set(range(4, 30)) - {13},               # 04-29 but no 13
     "M": set(range(4, 30)),                      # 04-29
     "N": set(range(4, 30)),                      # 04-29
     "O": set(range(18, 30)),                     # 18-29
     "P": set(range(16, 28)),                     # 16-27
-    "Q": set(range(1, 9)),                       # 01-08
-    "J": set(range(4, 23))                       # Tray 1 only                       
+    "Q": set(range(1, 9)),                       # 01-08  
 }
 
 templates = Jinja2Templates(directory="templates")
@@ -751,6 +751,23 @@ def rebuild_locations():
 
     return {"status": "Locations rebuilt"}
 
+from sqlalchemy import delete
+
+@app.get("/force-rebuild-locations")
+def force_rebuild_locations():
+    with SessionLocal() as db:
+        db.execute(delete(Location))
+        db.commit()
+
+        for r in ROWS:
+            slots = sorted(ALLOWED_SLOTS[r])
+            for lvl in LEVELS:
+                for s in slots:
+                    db.add(Location(row=r, slot=s, level=lvl))
+
+        db.commit()
+
+    return {"status": "ALL locations rebuilt"}
 
 
 
