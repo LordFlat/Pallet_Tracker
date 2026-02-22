@@ -770,6 +770,16 @@ def force_rebuild_locations():
     return {"status": "ALL locations rebuilt"}
 
 
+@app.get("/check-j-count")
+def check_j_count():
+    with SessionLocal() as db:
+        count = db.execute(
+            select(func.count()).where(Location.row == "J")
+        ).scalar()
+    return {"J_count": count}
+
+
+
 
 
 
