@@ -602,6 +602,7 @@ def move_submit(
 
 @app.post("/import-csv")
 async def import_csv(
+    request: Request,
     file: UploadFile = File(...),
     operator: str | None = Cookie(default=None),
 ):
@@ -609,7 +610,14 @@ async def import_csv(
         return RedirectResponse("/login", status_code=303)
 
     if not file.filename.endswith(".csv"):
-        return {"error": "Only CSV files allowed"}
+        return templates.TemplateResponse(
+            "import_result.html",
+            {
+                "request": request,
+                "imported": 0,
+                "errors": ["Only CSV files allowed"]
+            }
+        )
 
     imported = 0
     errors = []
@@ -647,25 +655,18 @@ async def import_csv(
             )
 
             db.add(pallet)
-
-            log_event(
-                db,
-                actor=operator,
-                pallet_name=category,
-                action="ADD",
-                to_loc=loc.code,
-            )
-
             imported += 1
 
         db.commit()
 
-    return {
-        "imported": imported,
-        "errors": errors
-
-    }
-
+    return templates.TemplateResponse(
+        "import_result.html",
+        {
+            "request": request,
+            "imported": imported,
+            "errors": errors
+        }
+    )
 from sqlalchemy import delete
 
 @app.get("/reset-db")
@@ -678,4 +679,5 @@ def reset_db(operator: str | None = Cookie(default=None)):
         db.commit()
 
     return {"status": "Pallets cleared"}
+
 
