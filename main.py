@@ -800,6 +800,18 @@ def debug_db():
     return {"db_url": DB_URL}
 
 
+from sqlalchemy import delete
+
+@app.get("/nuke")
+def nuke():
+    with SessionLocal() as db:
+        db.execute(delete(Pallet))
+        db.execute(delete(Location))
+        db.commit()
+    return {"status": "nuked"}
+
+
+
 
 
 
