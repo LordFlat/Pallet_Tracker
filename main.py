@@ -701,6 +701,12 @@ def rebuild_locations(operator: str | None = Cookie(default=None)):
 
     return {"status": "Locations rebuilt"}
 
+@app.get("/init-db")
+def force_init_db():
+    Base.metadata.create_all(bind=engine)
+    return {"status": "tables created"}
+
+
 
 
 
