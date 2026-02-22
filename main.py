@@ -187,16 +187,13 @@ def init_db():
         db.commit()
 
 
-@app.on_event("startup")
-def startup():
-    init_db()
-
-
 def parse_location(code: str):
     if not code:
         return None
+
     code = code.strip().upper()
-    m = re.fullmatch(r"([J-Q])\s*(\d{1,2})\s*([A-C])", code)
+
+    m = re.fullmatch(r"([A-Z])\s*(\d{1,2})\s*([A-C])", code)
     if not m:
         return None
 
@@ -204,11 +201,12 @@ def parse_location(code: str):
     slot = int(m.group(2))
     level = m.group(3)
 
-    allowed = ALLOWED_SLOTS.get(row)
-    if not allowed:
+    # 🔥 проверяем через конфиг
+    if row not in ROWS:
         return None
 
-    if slot not in allowed:
+    allowed = ALLOWED_SLOTS.get(row)
+    if not allowed or slot not in allowed:
         return None
 
     return row, slot, level
@@ -683,6 +681,7 @@ def reset_db(operator: str | None = Cookie(default=None)):
         db.commit()
 
     return {"status": "Pallets cleared"}
+
 
 
 
