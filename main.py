@@ -723,6 +723,11 @@ def debug_j():
 
         return {"count": len(rows)}
 
+@app.get("/create-tables")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+    return {"status": "tables created"}
+
 
 
 
