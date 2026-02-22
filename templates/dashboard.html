@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="/static/style.css">
 
 <!-- SEARCH + TOTAL -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+<div class="col-span-1 md:{% if has_query %}col-span-2{% else %}col-span-3{% endif %} w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
 
   {% if has_query %}
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -175,4 +175,5 @@ function toggleMenu() {
 </script>
 
 {% endblock %}
+
 
