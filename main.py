@@ -33,8 +33,10 @@ OPERATORS = {
 }
 
 
-DB_URL = "sqlite:///./app.db"
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+import os
+
+DB_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
@@ -681,6 +683,7 @@ def reset_db(operator: str | None = Cookie(default=None)):
         db.commit()
 
     return {"status": "Pallets cleared"}
+
 
 
 
