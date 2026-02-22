@@ -706,6 +706,16 @@ def force_init_db():
     Base.metadata.create_all(bind=engine)
     return {"status": "tables created"}
 
+@app.get("/debug-j")
+def debug_j():
+    with SessionLocal() as db:
+        rows = db.execute(
+            select(Location).where(Location.row == "J")
+        ).scalars().all()
+
+        return {"count": len(rows)}
+
+
 
 
 
