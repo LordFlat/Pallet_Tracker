@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from fastapi import Request
+
 import csv
 from pathlib import Path
 import re
@@ -679,5 +681,6 @@ def reset_db(operator: str | None = Cookie(default=None)):
         db.commit()
 
     return {"status": "Pallets cleared"}
+
 
 
