@@ -18,7 +18,7 @@
   <div class="{% if has_query %}md:col-span-2{% else %}md:col-span-3{% endif %}
               bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
 
-    <form method="get" action="/" class="flex flex-col sm:flex-row gap-2">
+    <form method="get" action="/" class="w-full flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200">
       <input name="q"
              value="{{ q }}"
              list="categorySuggestions"
@@ -175,5 +175,6 @@ function toggleMenu() {
 </script>
 
 {% endblock %}
+
 
 
