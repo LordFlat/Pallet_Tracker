@@ -5,75 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ title if title else "Pallet Tracker" }}</title>
 
-  <!-- Tailwind (fast MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Alpine for modals/toasts -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
-  <div class="max-w-6xl mx-auto px-4 py-6">
-    <header x-data="{ open: false }" class="mb-6">
 
-  <div class="flex items-center justify-between">
-    <!-- Logo / Title -->
-    <div>
-      <h1 class="text-2xl font-semibold tracking-tight">Pallet Tracker</h1>
-      <p class="text-slate-500 text-sm hidden sm:block">
-        Quick stock view without running to the chiller.
-      </p>
+<div class="w-full max-w-6xl mx-auto px-4 py-6">
+
+  <!-- HEADER -->
+  <header x-data="{ open:false }" class="mb-6">
+
+    <div class="flex items-center justify-between">
+
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">
+          Pallet Tracker
+        </h1>
+        <p class="text-slate-500 text-sm">
+          Quick stock view without running to the chiller.
+        </p>
+      </div>
+
+      <!-- DESKTOP MENU -->
+      <div class="hidden md:flex items-center gap-2">
+        <a href="/" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:shadow-sm">
+          Dashboard
+        </a>
+        <a href="/history" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:shadow-sm">
+          History
+        </a>
+        <a href="/add" class="px-4 py-2 rounded-xl bg-slate-900 text-white">
+          Add pallet
+        </a>
+        <a href="/logout" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:shadow-sm">
+          Logout
+        </a>
+      </div>
+
+      <!-- MOBILE BURGER -->
+      <button
+        @click="open = !open"
+        class="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-white">
+        ☰
+      </button>
+
     </div>
 
-    <!-- Desktop menu -->
-    <div class="hidden sm:flex items-center gap-2">
-      <a href="/" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+    <!-- MOBILE DROPDOWN -->
+    <div x-show="open" x-transition class="md:hidden mt-4 space-y-2">
+      <a href="/" class="block px-4 py-2 rounded-xl bg-white border border-slate-200">
         Dashboard
       </a>
-      <a href="/history" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+      <a href="/history" class="block px-4 py-2 rounded-xl bg-white border border-slate-200">
         History
       </a>
-      <a href="/add" class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+      <a href="/add" class="block px-4 py-2 rounded-xl bg-slate-900 text-white text-center">
         Add pallet
       </a>
-      <a href="/logout" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+      <a href="/logout" class="block px-4 py-2 rounded-xl bg-white border border-slate-200">
         Logout
       </a>
     </div>
 
-    <!-- Mobile burger -->
-    <button @click="open = !open"
-            class="sm:hidden px-3 py-2 rounded-xl bg-slate-900 text-white">
-      ☰
-    </button>
-  </div>
+  </header>
 
-  <!-- Mobile dropdown -->
-  <div x-show="open"
-       x-transition
-       @click.away="open = false"
-       class="sm:hidden mt-4 flex flex-col gap-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+  {% block content %}{% endblock %}
 
-    <a href="/" class="px-4 py-2 rounded-xl bg-white border border-slate-200">
-      Dashboard
-    </a>
-    <a href="/history" class="px-4 py-2 rounded-xl bg-white border border-slate-200">
-      History
-    </a>
-    <a href="/add" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-center">
-      Add pallet
-    </a>
-    <a href="/logout" class="px-4 py-2 rounded-xl bg-white border border-slate-200">
-      Logout
-    </a>
+</div>
 
-  </div>
-
-</header>
-
-
-    {% block content %}{% endblock %}
-  </div>
 </body>
 </html>
-
-
