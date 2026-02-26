@@ -621,11 +621,10 @@ def move_submit(
         from_zone = pallet.zone
         from_loc = pallet.location.code if pallet.location else None
 
-        # 🧊 Если зона с позициями
+        # Если зона с позициями
         if zone.has_positions:
 
             target = find_location(db, to_location)
-
             if not target:
                 return templates.TemplateResponse(
                     "move.html",
@@ -660,14 +659,13 @@ def move_submit(
 
             pallet.location_id = target.id
             pallet.zone_id = zone.id
+            to_loc_value = target.code
 
-            to_loc = target.code
-
-        # 🟢 Если зона без позиций
+        # Если зона без позиций
         else:
             pallet.location_id = None
             pallet.zone_id = zone.id
-            to_loc = zone.name
+            to_loc_value = zone.name
 
         log_event(
             db,
@@ -675,25 +673,9 @@ def move_submit(
             pallet_name=pallet.category_name,
             action="MOVE",
             from_loc=from_loc or (from_zone.name if from_zone else None),
-            to_loc=to_loc,
+            to_loc=to_loc_value,
         )
 
-        db.commit()
-
-    return RedirectResponse("/?toast=Moved", status_code=303)
-
-        # ✅ HISTORY: MOVE (логируем ДО commit)
-        log_event(
-            db,
-            actor=operator,
-            pallet_name=pallet.category_name,
-            action="MOVE",
-            from_loc=from_loc.code,
-            to_loc=target.code,
-        )
-
-        pallet.location_id = target.id
-        pallet.updated_at = datetime.utcnow()
         db.commit()
 
     return RedirectResponse("/?toast=Moved", status_code=303)
@@ -967,6 +949,7 @@ def debug_zones():
         }
 
 #===============================================#
+
 
 
 
