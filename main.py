@@ -367,7 +367,7 @@ def dashboard(
                 },
             )
 
-        items_q = select(Pallet).join(Location)
+        items_q = select(Pallet).join(Zone, isouter=True).join(Location, isouter=True)
         total_q = select(func.coalesce(func.sum(Pallet.punnets), 0)).select_from(Pallet).join(Location)
 
         parsed = parse_location(q)
@@ -885,6 +885,7 @@ def debug_zones():
         }
 
 #===============================================#
+
 
 
 
