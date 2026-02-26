@@ -410,24 +410,26 @@ def add_form(
 
     with SessionLocal() as db:
         suggestions = get_suggestions(db)
+        zones = db.query(Zone).all()   # ← ДОБАВИЛИ
 
-
-    return templates.TemplateResponse(
-        "add.html",
-        {
-            "request": request,
-            "values": {
-                "category_name": "",
-                "location_code": "",
-                "punnets": "",
-                "description": "",
+        return templates.TemplateResponse(
+            "add.html",
+            {
+                "request": request,
+                "values": {
+                    "category_name": "",
+                    "location_code": "",
+                    "punnets": "",
+                    "description": "",
+                    "zone_id": zones[0].id if zones else None,
+                },
+                "error": "",
+                "occupied": "",
+                "invalid": "",
+                "suggestions": suggestions,
+                "zones": zones,   # ← ГЛАВНОЕ
             },
-            "error": "",
-            "occupied": "",
-            "invalid": "",
-            "suggestions": suggestions,
-        },
-    )
+        )
 
 @app.post("/add", response_class=HTMLResponse)
 def add_pallet(
@@ -949,6 +951,7 @@ def debug_zones():
         }
 
 #===============================================#
+
 
 
 
