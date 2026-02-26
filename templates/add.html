@@ -3,13 +3,14 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="/static/style.css">
-
 <div class="w-full space-y-6">
 
-  <!-- ADD FORM -->
   <div class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
-       x-data="{ occupied: {{ 'true' if occupied else 'false' }}, invalid: {{ 'true' if invalid else 'false' }} }">
+       x-data="{
+         occupied: {{ 'true' if occupied else 'false' }},
+         invalid: {{ 'true' if invalid else 'false' }},
+         selectedZone: '{{ values.get("zone_id","") }}'
+       }">
 
     <h2 class="text-xl font-semibold">Add pallet</h2>
     <p class="text-slate-500 text-sm mt-1">Fill in details and save.</p>
@@ -32,18 +33,40 @@
                class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
       </div>
 
+      <!-- ZONE -->
+      <div>
+        <label class="text-sm text-slate-600">Zone</label>
+        <select name="zone_id"
+                x-model="selectedZone"
+                class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200">
+          {% for z in zones %}
+            <option value="{{ z.id }}"
+                    data-has-positions="{{ 'true' if z.has_positions else 'false' }}">
+              {{ z.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
       <!-- LOCATION + PUNNETS -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        <div>
+        <!-- LOCATION (auto hide if zone without positions) -->
+        <div
+          x-show="
+            [...$el.parentElement.parentElement.querySelectorAll('option')]
+            .find(o => o.value == selectedZone)?.dataset.hasPositions === 'true'
+          "
+          x-transition
+        >
           <label class="text-sm text-slate-600">Location</label>
           <input name="location_code"
                  value="{{ values.get('location_code','') }}"
-                 required
                  placeholder="e.g. L03C"
                  class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 font-mono" />
         </div>
 
+        <!-- PUNNETS -->
         <div>
           <label class="text-sm text-slate-600">Punnets</label>
           <input name="punnets"
@@ -80,40 +103,6 @@
 
     </form>
 
-  </div>
-
-  <!-- QUICK RULES -->
-  <div class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-    <h3 class="text-lg font-semibold">Quick rules</h3>
-
-    <ul class="mt-4 space-y-3 text-sm text-slate-600">
-      <li>• Only one pallet per location.</li>
-      <li>• Rows K–Q, slots 01–30, levels A–C.</li>
-      <li>• Total punnets is calculated from current pallets.</li>
-    </ul>
-  </div>
-
-  <!-- IMPORT CSV -->
-  <div class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-    <h3 class="text-lg font-semibold">Import CSV</h3>
-
-    <form action="/import-csv"
-          method="post"
-          enctype="multipart/form-data"
-          class="mt-5 space-y-4">
-
-      <input type="file"
-             name="file"
-             accept=".csv"
-             required
-             class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white" />
-
-      <button type="submit"
-              class="w-full px-6 py-3 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
-        Upload & Import
-      </button>
-
-    </form>
   </div>
 
 </div>
