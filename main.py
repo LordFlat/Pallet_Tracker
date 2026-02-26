@@ -951,18 +951,29 @@ def debug_zones():
         }
 
 
-
-@app.get("/rename-chiller")
-def rename_chiller():
+@app.get("/init-default-zones")
+def init_default_zones():
     with SessionLocal() as db:
-        zone = db.query(Zone).filter(Zone.name == "Chiller 10").first()
-        if zone:
-            zone.name = "Chiller 11"
-            db.commit()
-            return {"status": "Renamed to Chiller 11"}
-        return {"status": "Chiller 10 not found"}
+
+        default_zones = [
+            {"name": "Chiller 11", "has_positions": True},
+            {"name": "Chiller 6", "has_positions": False},
+            {"name": "Home Ripening 3", "has_positions": False},
+            {"name": "Trayban", "has_positions": False},
+            {"name": "Other", "has_positions": False},
+        ]
+
+        for z in default_zones:
+            exists = db.query(Zone).filter(Zone.name == z["name"]).first()
+            if not exists:
+                db.add(Zone(name=z["name"], has_positions=z["has_positions"]))
+
+        db.commit()
+
+    return {"status": "Default zones ensured"}
 
 #===============================================#
+
 
 
 
