@@ -433,53 +433,87 @@ def add_form(
 def add_pallet(
     request: Request,
     category_name: str = Form(...),
-    location_code: str = Form(...),
+    zone_id: int = Form(...),
+    location_code: str = Form(""),
     punnets: int = Form(...),
     description: str = Form(""),
     operator: str | None = Cookie(default=None),
 ):
     if not operator:
         return RedirectResponse("/login", status_code=303)
+
     values = {
         "category_name": (category_name or "").strip(),
         "location_code": (location_code or "").strip().upper(),
         "punnets": punnets,
         "description": (description or "").strip(),
+        "zone_id": zone_id,
     }
 
     with SessionLocal() as db:
         suggestions = get_suggestions(db)
+        zones = db.query(Zone).all()
 
-        loc = find_location(db, values["location_code"])
-        if not loc:
+        zone = db.get(Zone, zone_id)
+        if not zone:
             return templates.TemplateResponse(
                 "add.html",
                 {
                     "request": request,
                     "values": values,
-                    "error": "",
+                    "error": "Invalid zone selected.",
                     "occupied": "",
-                    "invalid": "Invalid location (use L03C).",
-                    "suggestions": suggestions,
-                },
-            )
-
-        exists = db.execute(select(Pallet).where(Pallet.location_id == loc.id)).scalar_one_or_none()
-        if exists:
-            return templates.TemplateResponse(
-                "add.html",
-                {
-                    "request": request,
-                    "values": values,
-                    "error": "",
-                    "occupied": f"Location {loc.code} is occupied.",
                     "invalid": "",
                     "suggestions": suggestions,
+                    "zones": zones,
                 },
             )
 
+        # 🧊 Если зона с позициями (Chiller 10)
+        if zone.has_positions:
+
+            loc = find_location(db, values["location_code"])
+            if not loc:
+                return templates.TemplateResponse(
+                    "add.html",
+                    {
+                        "request": request,
+                        "values": values,
+                        "error": "",
+                        "occupied": "",
+                        "invalid": "Invalid location (use L03C).",
+                        "suggestions": suggestions,
+                        "zones": zones,
+                    },
+                )
+
+            exists = db.execute(
+                select(Pallet).where(Pallet.location_id == loc.id)
+            ).scalar_one_or_none()
+
+            if exists:
+                return templates.TemplateResponse(
+                    "add.html",
+                    {
+                        "request": request,
+                        "values": values,
+                        "error": "",
+                        "occupied": f"Location {loc.code} is occupied.",
+                        "invalid": "",
+                        "suggestions": suggestions,
+                        "zones": zones,
+                    },
+                )
+
+            location_id = loc.id
+
+        # 🟢 Если зона без позиций
+        else:
+            location_id = None
+
         pallet = Pallet(
-            location_id=loc.id,
+            location_id=location_id,
+            zone_id=zone.id,
             category_name=values["category_name"],
             punnets=int(punnets),
             description=values["description"] or None,
@@ -487,6 +521,21 @@ def add_pallet(
         )
 
         db.add(pallet)
+
+        # 🔥 HISTORY
+        log_event(
+            db,
+            actor=operator,
+            pallet_name=pallet.category_name,
+            action="ADD",
+            to_loc=(
+                loc.code if zone.has_positions else zone.name
+            ),
+        )
+
+        db.commit()
+
+    return RedirectResponse("/?toast=Added", status_code=303)
 
         # ✅ HISTORY: ADD
         log_event(
@@ -544,14 +593,15 @@ def move_form(
         if not pallet:
             return RedirectResponse("/", status_code=303)
 
-        _ = pallet.location  # подгрузить location
+        zones = db.query(Zone).all()
 
         return templates.TemplateResponse(
             "move.html",
             {
                 "request": request,
                 "pallet": pallet,
-                "values": {"to_location": ""},
+                "zones": zones,
+                "values": {"to_location": "", "zone_id": pallet.zone_id},
                 "occupied": "",
                 "invalid": "",
                 "error": "",
@@ -562,7 +612,8 @@ def move_form(
 def move_submit(
     request: Request,
     pid: int,
-    to_location: str = Form(...),
+    zone_id: int = Form(...),
+    to_location: str = Form(""),
     operator: str | None = Cookie(default=None),
 ):
     if not operator:
@@ -575,30 +626,75 @@ def move_submit(
         if not pallet:
             return RedirectResponse("/", status_code=303)
 
-        from_loc = pallet.location
-        target = find_location(db, to_location)
+        zones = db.query(Zone).all()
+        zone = db.get(Zone, zone_id)
 
-        if not target:
-            return templates.TemplateResponse(
-                "move.html",
-                {"request": request, "pallet": pallet, "values": {"to_location": to_location},
-                 "occupied": "", "invalid": "Invalid location format. Use like L03C.", "error": ""},
-            )
+        if not zone:
+            return RedirectResponse("/", status_code=303)
 
-        if target.id == from_loc.id:
-            return templates.TemplateResponse(
-                "move.html",
-                {"request": request, "pallet": pallet, "values": {"to_location": to_location},
-                 "occupied": "", "invalid": "", "error": "Target location is the same as current location."},
-            )
+        from_zone = pallet.zone
+        from_loc = pallet.location.code if pallet.location else None
 
-        occupied = db.execute(select(Pallet).where(Pallet.location_id == target.id)).scalar_one_or_none()
-        if occupied:
-            return templates.TemplateResponse(
-                "move.html",
-                {"request": request, "pallet": pallet, "values": {"to_location": to_location},
-                 "occupied": f"Location {target.code} is already occupied.", "invalid": "", "error": ""},
-            )
+        # 🧊 Если зона с позициями
+        if zone.has_positions:
+
+            target = find_location(db, to_location)
+
+            if not target:
+                return templates.TemplateResponse(
+                    "move.html",
+                    {
+                        "request": request,
+                        "pallet": pallet,
+                        "zones": zones,
+                        "values": {"to_location": to_location, "zone_id": zone_id},
+                        "occupied": "",
+                        "invalid": "Invalid location format. Use like L03C.",
+                        "error": "",
+                    },
+                )
+
+            occupied = db.execute(
+                select(Pallet).where(Pallet.location_id == target.id)
+            ).scalar_one_or_none()
+
+            if occupied:
+                return templates.TemplateResponse(
+                    "move.html",
+                    {
+                        "request": request,
+                        "pallet": pallet,
+                        "zones": zones,
+                        "values": {"to_location": to_location, "zone_id": zone_id},
+                        "occupied": f"Location {target.code} is already occupied.",
+                        "invalid": "",
+                        "error": "",
+                    },
+                )
+
+            pallet.location_id = target.id
+            pallet.zone_id = zone.id
+
+            to_loc = target.code
+
+        # 🟢 Если зона без позиций
+        else:
+            pallet.location_id = None
+            pallet.zone_id = zone.id
+            to_loc = zone.name
+
+        log_event(
+            db,
+            actor=operator,
+            pallet_name=pallet.category_name,
+            action="MOVE",
+            from_loc=from_loc or (from_zone.name if from_zone else None),
+            to_loc=to_loc,
+        )
+
+        db.commit()
+
+    return RedirectResponse("/?toast=Moved", status_code=303)
 
         # ✅ HISTORY: MOVE (логируем ДО commit)
         log_event(
@@ -885,6 +981,7 @@ def debug_zones():
         }
 
 #===============================================#
+
 
 
 
