@@ -67,6 +67,7 @@
         <thead class="text-slate-500">
           <tr class="border-b border-slate-100">
             <th class="text-left font-medium px-5 py-3">Category</th>
+            <th class="text-left font-medium px-5 py-3">Zone</th>
             <th class="text-left font-medium px-5 py-3">Location</th>
             <th class="text-left font-medium px-5 py-3">Punnets</th>
             <th class="text-right font-medium px-5 py-3">Action</th>
@@ -77,18 +78,32 @@
           {% for p in pallets %}
           <tr class="border-b border-slate-50 hover:bg-slate-50 transition">
 
+            <!-- CATEGORY -->
             <td class="px-5 py-3">
               <div class="font-medium">{{ p.category_name }}</div>
               {% if p.description %}
-                <div class="text-xs text-slate-500 mt-1">
-                  {{ p.description }}
-                </div>
+              <div class="text-xs text-slate-500 mt-1">
+                {{ p.description }}
+              </div>
               {% endif %}
             </td>
 
-            <td class="px-5 py-3 font-mono">{{ p.location.code }}</td>
-            <td class="px-5 py-3">{{ p.punnets }}</td>
+            <!-- ZONE -->
+            <td class="px-5 py-3">
+              {{ p.zone.name if p.zone else "-" }}
+            </td>
 
+            <!-- LOCATION -->
+            <td class="px-5 py-3 font-mono">
+              {{ p.location.code if p.location else "-" }}
+            </td>
+
+            <!-- PUNNETS -->
+            <td class="px-5 py-3">
+              {{ p.punnets }}
+            </td>
+
+            <!-- ACTION -->
             <td class="px-5 py-3 text-right">
               <div x-data="{ open:false }" class="inline-flex items-center gap-2">
 
@@ -120,7 +135,7 @@
                     <p class="text-slate-600 mt-2 text-sm">
                       This will clear location
                       <span class="font-mono font-medium">
-                        {{ p.location.code }}
+                        {{ p.location.code if p.location else "-" }}
                       </span>.
                     </p>
 
@@ -151,7 +166,7 @@
 
           {% if pallets|length == 0 %}
           <tr>
-            <td colspan="4"
+            <td colspan="5"
                 class="px-5 py-10 text-center text-slate-500">
               No pallets found.
             </td>
