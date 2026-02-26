@@ -950,7 +950,20 @@ def debug_zones():
             ]
         }
 
+
+
+@app.get("/rename-chiller")
+def rename_chiller():
+    with SessionLocal() as db:
+        zone = db.query(Zone).filter(Zone.name == "Chiller 10").first()
+        if zone:
+            zone.name = "Chiller 11"
+            db.commit()
+            return {"status": "Renamed to Chiller 11"}
+        return {"status": "Chiller 10 not found"}
+
 #===============================================#
+
 
 
 
