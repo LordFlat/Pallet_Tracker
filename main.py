@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sqlalchemy import text
+
 from fastapi import Request
 
 import csv
@@ -76,6 +78,16 @@ class Location(Base):
     def code(self) -> str:
         return f"{self.row}{self.slot:02d}{self.level}"
 
+from sqlalchemy import Boolean
+
+class Zone(Base):
+    __tablename__ = "zones"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    has_positions = Column(Boolean, default=False)
+
+    
 
 class Pallet(Base):
     __tablename__ = "pallets"
@@ -90,6 +102,9 @@ class Pallet(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     location = relationship("Location", back_populates="pallet")
+
+    zone_id = Column(Integer, ForeignKey("zones.id"), nullable=True)
+    zone = relationship("Zone")
 
 
 class Event(Base):
@@ -671,6 +686,9 @@ async def import_csv(
     )
 from sqlalchemy import delete
 
+
+# ================== End Points ================== #
+
 @app.get("/reset-db")
 def reset_db(operator: str | None = Cookie(default=None)):
     if not operator:
@@ -809,6 +827,54 @@ def nuke():
         db.execute(delete(Location))
         db.commit()
     return {"status": "nuked"}
+#============================================#
+
+@app.get("/create-zones-table")
+def create_zones_table():
+    Base.metadata.create_all(bind=engine)
+    return {"status": "zones table created"}
+
+@app.get("/init-zones")
+def init_zones():
+    with SessionLocal() as db:
+        existing = db.query(Zone).filter_by(name="Chiller 10").first()
+        if not existing:
+            zone = Zone(name="Chiller 10", has_positions=True)
+            db.add(zone)
+            db.commit()
+    return {"status": "Chiller 10 ready"}
+
+@app.get("/assign-old-pallets")
+def assign_old_pallets():
+    with SessionLocal() as db:
+        zone = db.query(Zone).filter_by(name="Chiller 10").first()
+        if not zone:
+            return {"error": "Zone not found"}
+
+        pallets = db.query(Pallet).filter(Pallet.zone_id == None).all()
+
+        for p in pallets:
+            p.zone_id = zone.id
+
+        db.commit()
+
+    return {"status": "Old pallets assigned"}
+
+from sqlalchemy import text
+
+@app.get("/add-zone-column")
+def add_zone_column():
+    with engine.connect() as conn:
+        conn.execute(
+            text("ALTER TABLE pallets ADD COLUMN IF NOT EXISTS zone_id INTEGER")
+        )
+        conn.commit()
+    return {"status": "zone_id column ensured"}
+
+
+
+#===============================================#
+
 
 
 
