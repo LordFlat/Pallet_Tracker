@@ -5,11 +5,17 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
   <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
-       x-data="{ 
+       x-data="{
   occupied: {{ 'true' if occupied else 'false' }},
   invalid: {{ 'true' if invalid else 'false' }},
-  selectedZone: '{{ values.zone_id if values.zone_id else (pallet.zone.id if pallet.zone else '') }}'
-}">
+  selectedZone: '{{ values.zone_id if values.zone_id else (pallet.zone.id if pallet.zone else '') }}',
+  hasPositions: false,
+  updateZone() {
+    const option = this.$refs.zoneSelect.selectedOptions[0];
+    this.hasPositions = option?.dataset.hasPositions === 'true';
+  }
+}"
+x-init="updateZone()">
 
     <h2 class="text-lg font-semibold">Move pallet</h2>
     <p class="text-slate-500 text-sm mt-1">Move a pallet to a new zone or location.</p>
@@ -50,11 +56,11 @@
       <!-- ZONE SELECT -->
       <div>
         <label class="text-sm text-slate-600">Zone</label>
-        <select 
-  id="zoneSelect"
+        <select
   x-ref="zoneSelect"
   name="zone_id"
   x-model="selectedZone"
+  @change="updateZone()"
   class="mt-1 w-full px-4 py-2.5 rounded-xl border border-slate-200">
           {% for z in zones %}
             <option value="{{ z.id }}"
@@ -66,10 +72,7 @@
       </div>
 
       <!-- LOCATION INPUT (only if zone has positions) -->
-      <div x-show="
-  $refs.zoneSelect?.selectedOptions[0]?.dataset.hasPositions === 'true'
-"
-x-transition>
+      <div x-show="hasPositions" x-transition>
         
         <label class="text-sm text-slate-600">New location</label>
         <input name="to_location"
@@ -143,4 +146,5 @@ x-transition>
 
 </div>
 {% endblock %}
+
 
