@@ -335,6 +335,8 @@ def export_history(operator: str | None = Cookie(default=None)):
     )
 
 
+from sqlalchemy import select, func
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(
     request: Request,
@@ -351,7 +353,7 @@ def dashboard(
         suggestions = get_suggestions(db)
         active_ops = get_active_operators(db)
 
-        # empty search => show nothing
+        # 🔹 если поиск пустой — ничего не показываем
         if not q:
             return templates.TemplateResponse(
                 "dashboard.html",
@@ -367,23 +369,47 @@ def dashboard(
                 },
             )
 
-        items_q = select(Pallet).join(Zone, isouter=True).join(Location, isouter=True)
-        total_q = select(func.coalesce(func.sum(Pallet.punnets), 0)).select_from(Pallet).join(Location)
+        # 🔹 базовые запросы
+        items_q = (
+            select(Pallet)
+            .join(Zone, isouter=True)
+            .join(Location, isouter=True)
+        )
+
+        total_q = select(
+            func.coalesce(func.sum(Pallet.punnets), 0)
+        ).select_from(Pallet)
 
         parsed = parse_location(q)
+
+        # 🔹 если ввели L03C
         if parsed:
             r, s, l = parsed
-            items_q = items_q.where(Location.row == r, Location.slot == s, Location.level == l)
-            total_q = total_q.where(Location.row == r, Location.slot == s, Location.level == l)
-        else:
-            items_q = items_q.where(func.lower(Pallet.category_name) == q.lower())
-            total_q = total_q.where(func.lower(Pallet.category_name) == q.lower())
 
+            items_q = items_q.where(
+                Location.row == r,
+                Location.slot == s,
+                Location.level == l,
+            )
+
+            total_q = total_q.join(Location).where(
+                Location.row == r,
+                Location.slot == s,
+                Location.level == l,
+            )
+
+        # 🔹 если ищем по категории
+        else:
+            items_q = items_q.where(
+                func.lower(Pallet.category_name) == q.lower()
+            )
+
+            total_q = total_q.where(
+                func.lower(Pallet.category_name) == q.lower()
+            )
 
         pallets = db.execute(items_q).scalars().all()
         total = db.execute(total_q).scalar_one()
-
-        active_ops = get_active_operators(db)
 
         return templates.TemplateResponse(
             "dashboard.html",
@@ -973,6 +999,7 @@ def init_default_zones():
     return {"status": "Default zones ensured"}
 
 #===============================================#
+
 
 
 
