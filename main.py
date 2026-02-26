@@ -469,7 +469,7 @@ def add_pallet(
                 },
             )
 
-        # 🧊 Если зона с позициями (Chiller 10)
+        # 🧊 Если зона с позициями
         if zone.has_positions:
 
             loc = find_location(db, values["location_code"])
@@ -506,10 +506,12 @@ def add_pallet(
                 )
 
             location_id = loc.id
+            to_loc_value = loc.code
 
         # 🟢 Если зона без позиций
         else:
             location_id = None
+            to_loc_value = zone.name
 
         pallet = Pallet(
             location_id=location_id,
@@ -522,28 +524,12 @@ def add_pallet(
 
         db.add(pallet)
 
-        # 🔥 HISTORY
         log_event(
             db,
             actor=operator,
             pallet_name=pallet.category_name,
             action="ADD",
-            to_loc=(
-                loc.code if zone.has_positions else zone.name
-            ),
-        )
-
-        db.commit()
-
-    return RedirectResponse("/?toast=Added", status_code=303)
-
-        # ✅ HISTORY: ADD
-        log_event(
-            db,
-            actor=operator,
-            pallet_name=pallet.category_name,
-            action="ADD",
-            to_loc=loc.code,
+            to_loc=to_loc_value,
         )
 
         db.commit()
