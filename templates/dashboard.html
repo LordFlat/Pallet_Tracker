@@ -17,26 +17,29 @@
   <!-- SEARCH CARD -->
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
 
-    <form method="get" action="/" class="w-full flex flex-col gap-4">
+    <form method="get" action="/"
+      class="w-full flex flex-col sm:flex-row gap-4">
 
-      <input 
-        type="text"
-        name="q"
-        value="{{ q }}"
-        list="categorySuggestions"
-        placeholder="Search by location (L03C) or category name…"
-        class="w-full px-4 py-4 rounded-xl border border-slate-200
-               focus:outline-none focus:ring-2 focus:ring-slate-200" 
-      />
+  <input 
+    type="text"
+    name="q"
+    value="{{ q }}"
+    list="categorySuggestions"
+    placeholder="Search by location (L03C) or category name…"
+    class="flex-1 px-4 py-3 rounded-xl border border-slate-200
+           focus:outline-none focus:ring-2 focus:ring-slate-200" 
+  />
 
-      <button 
-        type="submit"
-        class="w-full px-6 py-4 rounded-xl
-               bg-slate-900 text-white hover:opacity-90 transition">
-        Search
-      </button>
+  <button 
+    type="submit"
+    class="px-6 py-3 rounded-xl
+           bg-slate-900 text-white
+           hover:opacity-90 transition
+           sm:w-auto w-full shadow-sm">
+    Search
+  </button>
 
-    </form>
+</form>
 
     <datalist id="categorySuggestions">
       {% for s in suggestions %}
@@ -190,3 +193,4 @@
 </div>
 
 {% endblock %}
+
