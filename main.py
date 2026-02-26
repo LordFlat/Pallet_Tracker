@@ -871,9 +871,23 @@ def add_zone_column():
         conn.commit()
     return {"status": "zone_id column ensured"}
 
+@app.get("/debug-zones")
+def debug_zones():
+    with SessionLocal() as db:
+        zones = db.query(Zone).all()
+        pallets = db.query(Pallet).limit(5).all()
+        return {
+            "zones": [z.name for z in zones],
+            "sample_pallets": [
+                {"id": p.id, "zone_id": p.zone_id}
+                for p in pallets
+            ]
+        }
+
 
 
 #===============================================#
+
 
 
 
