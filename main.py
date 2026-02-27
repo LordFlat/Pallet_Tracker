@@ -340,6 +340,7 @@ from sqlalchemy import select, func
 @app.get("/", response_class=HTMLResponse)
 def dashboard(
     request: Request,
+    zone: str = "Chiller 11",
     q: str = "",
     toast: str = "",
     operator: str | None = Cookie(default=None),
@@ -353,75 +354,48 @@ def dashboard(
         suggestions = get_suggestions(db)
         active_ops = get_active_operators(db)
 
-        # 🔹 если поиск пустой — ничего не показываем
-        if not q:
-            return templates.TemplateResponse(
-                "dashboard.html",
-                {
-                    "request": request,
-                    "pallets": [],
-                    "q": "",
-                    "total": None,
-                    "toast": toast,
-                    "suggestions": suggestions,
-                    "has_query": False,
-                    "active_ops": active_ops,
-                },
-            )
+        zones = db.query(Zone).order_by(Zone.name).all()
 
-        # 🔹 базовые запросы
-        items_q = (
-            select(Pallet)
-            .join(Zone, isouter=True)
-            .join(Location, isouter=True)
+        # Проверяем что зона существует
+        zone_obj = db.query(Zone).filter_by(name=zone).first()
+        if not zone_obj:
+            zone_obj = db.query(Zone).filter_by(name="Chiller 11").first()
+            zone = zone_obj.name if zone_obj else ""
+
+        # Базовый запрос
+        items_q = select(Pallet).where(
+            Pallet.zone.has(name=zone)
         )
 
-        total_q = select(
-            func.coalesce(func.sum(Pallet.punnets), 0)
-        ).select_from(Pallet)
+        # Если есть поиск — фильтруем внутри зоны
+        if q:
+            parsed = parse_location(q)
 
-        parsed = parse_location(q)
-
-        # 🔹 если ввели L03C
-        if parsed:
-            r, s, l = parsed
-
-            items_q = items_q.where(
-                Location.row == r,
-                Location.slot == s,
-                Location.level == l,
-            )
-
-            total_q = total_q.join(Location).where(
-                Location.row == r,
-                Location.slot == s,
-                Location.level == l,
-            )
-
-        # 🔹 если ищем по категории
-        else:
-            items_q = items_q.where(
-                func.lower(Pallet.category_name) == q.lower()
-            )
-
-            total_q = total_q.where(
-                func.lower(Pallet.category_name) == q.lower()
-            )
+            if parsed:
+                r, s, l = parsed
+                items_q = items_q.join(Location).where(
+                    Location.row == r,
+                    Location.slot == s,
+                    Location.level == l,
+                )
+            else:
+                items_q = items_q.where(
+                    func.lower(Pallet.category_name) == q.lower()
+                )
 
         pallets = db.execute(items_q).scalars().all()
-        total = db.execute(total_q).scalar_one()
 
         return templates.TemplateResponse(
             "dashboard.html",
             {
                 "request": request,
                 "pallets": pallets,
+                "zones": zones,
+                "selected_zone": zone,
                 "active_ops": active_ops,
                 "q": q,
-                "total": total,
                 "toast": toast,
                 "suggestions": suggestions,
-                "has_query": True,
             },
         )
 
@@ -999,6 +973,7 @@ def init_default_zones():
     return {"status": "Default zones ensured"}
 
 #===============================================#
+
 
 
 
