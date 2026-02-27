@@ -66,6 +66,17 @@
     </div>
 
     <div class="overflow-x-auto">
+      <form method="get" action="/">
+    <label>Zone:</label>
+    <select name="zone" onchange="this.form.submit()">
+        {% for z in zones %}
+            <option value="{{ z.name }}"
+                {% if z.name == selected_zone %}selected{% endif %}>
+                {{ z.name }}
+            </option>
+        {% endfor %}
+    </select>
+</form>
       <table class="w-full text-sm">
         <thead class="text-slate-500">
           <tr class="border-b border-slate-100">
@@ -193,4 +204,5 @@
 </div>
 
 {% endblock %}
+
 
