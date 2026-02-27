@@ -353,7 +353,6 @@ def dashboard(
     with SessionLocal() as db:
         suggestions = get_suggestions(db)
         active_ops = get_active_operators(db)
-
         zones = db.query(Zone).order_by(Zone.name).all()
 
         # Проверяем что зона существует
@@ -362,12 +361,12 @@ def dashboard(
             zone_obj = db.query(Zone).filter_by(name="Chiller 11").first()
             zone = zone_obj.name if zone_obj else ""
 
-        # Базовый запрос
+        # Базовый запрос по зоне
         items_q = select(Pallet).where(
             Pallet.zone.has(name=zone)
         )
 
-        # Если есть поиск — фильтруем внутри зоны
+        # Если есть поиск
         if q:
             parsed = parse_location(q)
 
@@ -385,6 +384,31 @@ def dashboard(
 
         pallets = db.execute(items_q).scalars().all()
 
+        # ===== TOTAL BLOCK =====
+        total = None
+        has_query = bool(q)
+
+        if has_query:
+            total_q = select(func.coalesce(func.sum(Pallet.punnets), 0)).where(
+                Pallet.zone.has(name=zone)
+            )
+
+            parsed = parse_location(q)
+
+            if parsed:
+                r, s, l = parsed
+                total_q = total_q.join(Location).where(
+                    Location.row == r,
+                    Location.slot == s,
+                    Location.level == l,
+                )
+            else:
+                total_q = total_q.where(
+                    func.lower(Pallet.category_name) == q.lower()
+                )
+
+            total = db.execute(total_q).scalar_one()
+
         return templates.TemplateResponse(
             "dashboard.html",
             {
@@ -396,6 +420,8 @@ def dashboard(
                 "q": q,
                 "toast": toast,
                 "suggestions": suggestions,
+                "total": total,
+                "has_query": has_query,
             },
         )
 
@@ -973,6 +999,7 @@ def init_default_zones():
     return {"status": "Default zones ensured"}
 
 #===============================================#
+
 
 
 
