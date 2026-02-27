@@ -5,41 +5,49 @@
 
 <div class="space-y-6">
 
-  {% if has_query %}
-  <!-- TOTAL CARD -->
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-    <div class="text-slate-500 text-sm">Total punnets (current)</div>
-    <div class="text-3xl font-semibold mt-1">{{ total }}</div>
-  </div>
-  {% endif %}
+  <!-- CONTROLS CARD -->
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
 
+    <!-- ZONE SELECT -->
+    <form method="get" action="/" class="flex flex-col sm:flex-row gap-4 items-center">
 
-  <!-- SEARCH CARD -->
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+      <div class="flex items-center gap-3">
+        <label class="text-sm text-slate-500">Zone:</label>
+        <select name="zone"
+                class="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-200"
+                onchange="this.form.submit()">
+          {% for z in zones %}
+            <option value="{{ z.name }}"
+              {% if z.name == selected_zone %}selected{% endif %}>
+              {{ z.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <form method="get" action="/"
-      class="w-full flex flex-col sm:flex-row gap-4">
+      <!-- SEARCH -->
+      <div class="flex-1 flex gap-4 w-full">
+        <input
+          type="text"
+          name="q"
+          value="{{ q }}"
+          list="categorySuggestions"
+          placeholder="Search by location (L03C) or category name…"
+          class="flex-1 px-4 py-3 rounded-xl border border-slate-200
+                 focus:outline-none focus:ring-2 focus:ring-slate-200"
+        />
 
-  <input 
-    type="text"
-    name="q"
-    value="{{ q }}"
-    list="categorySuggestions"
-    placeholder="Search by location (L03C) or category name…"
-    class="flex-1 px-4 py-3 rounded-xl border border-slate-200
-           focus:outline-none focus:ring-2 focus:ring-slate-200" 
-  />
+        <button
+          type="submit"
+          class="px-6 py-3 rounded-xl
+                 bg-slate-900 text-white
+                 hover:opacity-90 transition
+                 sm:w-auto w-full shadow-sm">
+          Search
+        </button>
+      </div>
 
-  <button 
-    type="submit"
-    class="px-6 py-3 rounded-xl
-           bg-slate-900 text-white
-           hover:opacity-90 transition
-           sm:w-auto w-full shadow-sm">
-    Search
-  </button>
-
-</form>
+    </form>
 
     <datalist id="categorySuggestions">
       {% for s in suggestions %}
@@ -47,36 +55,17 @@
       {% endfor %}
     </datalist>
 
-    <div class="text-xs text-slate-500 mt-3">
-      Tip: You can type 
-      <span class="font-medium">L3C</span> or 
-      <span class="font-medium">L03C</span>.
-    </div>
-
   </div>
 
-
-  {% if has_query %}
   <!-- RESULTS TABLE -->
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-      <div class="font-semibold">Current pallets</div>
+      <div class="font-semibold">Current pallets — {{ selected_zone }}</div>
       <div class="text-sm text-slate-500">{{ pallets|length }} item(s)</div>
     </div>
 
     <div class="overflow-x-auto">
-      <form method="get" action="/">
-    <label>Zone:</label>
-    <select name="zone" onchange="this.form.submit()">
-        {% for z in zones %}
-            <option value="{{ z.name }}"
-                {% if z.name == selected_zone %}selected{% endif %}>
-                {{ z.name }}
-            </option>
-        {% endfor %}
-    </select>
-</form>
       <table class="w-full text-sm">
         <thead class="text-slate-500">
           <tr class="border-b border-slate-100">
@@ -92,7 +81,6 @@
           {% for p in pallets %}
           <tr class="border-b border-slate-50 hover:bg-slate-50 transition">
 
-            <!-- CATEGORY -->
             <td class="px-5 py-3">
               <div class="font-medium">{{ p.category_name }}</div>
               {% if p.description %}
@@ -102,22 +90,18 @@
               {% endif %}
             </td>
 
-            <!-- ZONE -->
             <td class="px-5 py-3">
               {{ p.zone.name if p.zone else "-" }}
             </td>
 
-            <!-- LOCATION -->
             <td class="px-5 py-3 font-mono">
               {{ p.location.code if p.location else "-" }}
             </td>
 
-            <!-- PUNNETS -->
             <td class="px-5 py-3">
               {{ p.punnets }}
             </td>
 
-            <!-- ACTION -->
             <td class="px-5 py-3 text-right">
               <div x-data="{ open:false }" class="inline-flex items-center gap-2">
 
@@ -133,7 +117,6 @@
                   Remove
                 </button>
 
-                <!-- MODAL -->
                 <div x-show="open"
                      x-transition
                      class="fixed inset-0 bg-black/20 grid place-items-center p-4">
@@ -182,7 +165,7 @@
           <tr>
             <td colspan="5"
                 class="px-5 py-10 text-center text-slate-500">
-              No pallets found.
+              No pallets in this zone.
             </td>
           </tr>
           {% endif %}
@@ -192,17 +175,7 @@
     </div>
 
   </div>
-  {% else %}
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-500">
-    Start typing a category (e.g.
-    <span class="font-medium">BB75</span>)
-    or a location (e.g.
-    <span class="font-mono font-medium">L03C</span>).
-  </div>
-  {% endif %}
 
 </div>
 
 {% endblock %}
-
-
