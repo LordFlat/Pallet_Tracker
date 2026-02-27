@@ -8,9 +8,9 @@
   <!-- CONTROLS CARD -->
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
 
-    <!-- ZONE SELECT -->
-    <form method="get" action="/" class="flex flex-col sm:flex-row gap-4 items-center">
+    <form method="get" action="/" class="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
 
+      <!-- ZONE SELECT -->
       <div class="flex items-center gap-3">
         <label class="text-sm text-slate-500">Zone:</label>
         <select name="zone"
@@ -42,7 +42,7 @@
           class="px-6 py-3 rounded-xl
                  bg-slate-900 text-white
                  hover:opacity-90 transition
-                 sm:w-auto w-full shadow-sm">
+                 shadow-sm">
           Search
         </button>
       </div>
@@ -57,12 +57,30 @@
 
   </div>
 
+
+  <!-- TOTAL CARD (only after search) -->
+  {% if has_query %}
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+    <div class="text-slate-500 text-sm">
+      Total punnets in result ({{ selected_zone }})
+    </div>
+    <div class="text-3xl font-semibold mt-1">
+      {{ total }}
+    </div>
+  </div>
+  {% endif %}
+
+
   <!-- RESULTS TABLE -->
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-      <div class="font-semibold">Current pallets — {{ selected_zone }}</div>
-      <div class="text-sm text-slate-500">{{ pallets|length }} item(s)</div>
+      <div class="font-semibold">
+        Current pallets — {{ selected_zone }}
+      </div>
+      <div class="text-sm text-slate-500">
+        {{ pallets|length }} item(s)
+      </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -165,7 +183,7 @@
           <tr>
             <td colspan="5"
                 class="px-5 py-10 text-center text-slate-500">
-              No pallets in this zone.
+              No pallets found in this zone.
             </td>
           </tr>
           {% endif %}
