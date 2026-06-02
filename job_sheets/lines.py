@@ -7,8 +7,9 @@ Allowed work centers (MVP):
 
 Ignored: GIRO 3/4/5, MPACK, H/LINES, OFF SITE and everything else.
 
-Output line normalization:
-    FLOW 5 -> F5, FLOW 7 -> F7, LINERLESS -> LL, any TOP/TP SEAL* -> TS
+Output line normalization (the real top-sealer number is preserved):
+    FLOW 5 -> F5, FLOW 7 -> F7, LINERLESS -> LL,
+    TOP SEAL -> TS, TP SEAL2 -> TS2, TP SEAL4 -> TS4, ... TP SEAL7 -> TS7
 """
 
 from __future__ import annotations
@@ -44,6 +45,18 @@ def _flow_digit(compact: str) -> str | None:
     return digits[0] if digits else None
 
 
+def _seal_code(compact: str) -> str | None:
+    """Top-sealer line code preserving its number: TS, TS2, TS4, ... or None.
+
+    "TOP SEAL"/"TP SEAL" with no number -> "TS"; "TP SEAL2" -> "TS2", etc.
+    """
+    for prefix in _TOP_SEAL_PREFIXES:
+        if compact.startswith(prefix):
+            m = re.search(r"\d+", compact[len(prefix):])
+            return "TS" + (m.group() if m else "")
+    return None
+
+
 def is_allowed(work_center: str) -> bool:
     """True if the work center is in scope (FLOW 5/7, LINERLESS, TOP SEAL*).
 
@@ -69,8 +82,9 @@ def normalize_line(work_center: str) -> str:
     compact = _compact(work_center)
     if compact.startswith("LINER"):
         return "LL"
-    if compact.startswith(_TOP_SEAL_PREFIXES):
-        return "TS"
+    seal = _seal_code(compact)
+    if seal is not None:  # TOP/TP SEAL with its real number preserved
+        return seal
     if compact.startswith("FLOW"):
         return "F7" if _flow_digit(compact) == "7" else "F5"
     # Unknown but not filtered out elsewhere: fall back to the raw value.

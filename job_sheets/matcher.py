@@ -119,12 +119,26 @@ def match_description(raw_description: str) -> MatchResult:
     if not target or not rules:
         return MatchResult(rule=None, score=0.0)
 
+    # Priority 1: an exact normalized match wins outright. This stops a generic
+    # rule from tying via partial_ratio — e.g. "PLUM RED 10X400g H/S" must pick
+    # "Ess Plum 400" (exact) rather than "MT Plum 340" (whose "10x4" is a partial
+    # substring of "10x400g" and would otherwise score 100 too).
+    for rule in rules:
+        if rule.normalized == target:
+            return MatchResult(rule=rule, score=100.0)
+
+    # Priority 2: best fuzzy score. On ties, prefer the candidate whose
+    # normalized length is closest to the target (the more specific rule),
+    # which also favours the longer pack-size match over a shorter prefix.
     best: Rule | None = None
-    best_score = 0.0
+    best_score = -1.0
+    best_len_gap = None
     for rule in rules:
         s = _score(target, rule.normalized)
-        if s > best_score:
+        len_gap = abs(len(rule.normalized) - len(target))
+        if s > best_score or (s == best_score and (best_len_gap is None or len_gap < best_len_gap)):
             best_score = s
+            best_len_gap = len_gap
             best = rule
 
-    return MatchResult(rule=best, score=best_score)
+    return MatchResult(rule=best, score=max(best_score, 0.0))

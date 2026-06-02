@@ -133,12 +133,95 @@ def _merge_key(line: str, product_norm: str, needs_punnets: bool) -> tuple:
     return (line, product_norm, "punnet" if needs_punnets else "standard")
 
 
+# Special-case combine: the 230g and 140g Fig rows are prepared as a single
+# PD080 ("Figs 230/140"). Both rules carry this Using Name; they are told apart
+# by the pack size in the matched rule's Material Description.
+FIG_COMBINED_NAME = "Figs 230/140"
+
+
+def _is_fig_combined(enriched: dict) -> bool:
+    rule = enriched.get("rule")
+    return rule is not None and rule.using_name.strip().lower() == FIG_COMBINED_NAME.lower()
+
+
+def _find_fig_pair(enriched_rows: list[dict]) -> tuple[dict | None, dict | None]:
+    """Return (fig_230, fig_140) enriched rows if both are present, else Nones."""
+    fig_230 = fig_140 = None
+    for e in enriched_rows:
+        if not _is_fig_combined(e):
+            continue
+        desc = (e["rule"].material_description or "")
+        if "230" in desc and fig_230 is None:
+            fig_230 = e
+        elif "140" in desc and fig_140 is None:
+            fig_140 = e
+    return fig_230, fig_140
+
+
+def _make_fig_sheet(fig_230: dict, fig_140: dict) -> JobSheet:
+    """Build the combined Figs 230/140 sheet.
+
+    - Job number: from the 230g row's Prod.Order.
+    - Suffix: from the 140g row's Prod.Order.
+    - Punnet qty: from the 230g row's Act.Qty ONLY (140g qty is ignored).
+    - Line / work center / text: from the first Fig row in SAP order.
+    """
+    first = fig_230 if fig_230["idx"] <= fig_140["idx"] else fig_140
+
+    main_job = valid_prod_order(fig_230["row"].prod_order)
+    suffix_job = valid_prod_order(fig_140["row"].prod_order)
+    additional = [suffix_job] if suffix_job and suffix_job != main_job else []
+
+    # Punnet maths uses the 230g row exclusively.
+    qty_230 = fig_230["row"].act_qty
+    needs_pun = fig_230["needs_pun"]
+    mult = fig_230["mult"]
+    punnet_material = fig_230["punnet_material"]
+    punnet_qty: int | None = None
+    if needs_pun and mult is not None and qty_230 > 0:
+        punnet_qty = int(mult * qty_230 + PUNNET_BUFFER)
+
+    reasons: list[str] = []
+    if not (fig_230["matched"] and fig_140["matched"]):
+        reasons.append("Fig 230/140 match not confident — check product")
+    if not fig_230["row"].act_qty_ok:
+        reasons.append("230g Act.Qty could not be read — verify")
+    if needs_pun and qty_230 > 0 and not punnet_material:
+        reasons.append("Punnets required but no punnet material in rules")
+    if needs_pun and qty_230 > 0 and mult is None:
+        reasons.append("Punnets required but no pack multiplier found")
+    status = "needs_review" if reasons else "matched"
+
+    return JobSheet(
+        id=uuid.uuid4().hex[:8],
+        raw_description=(
+            f'{collapse_spaces(fig_230["row"].material_description)} + '
+            f'{collapse_spaces(fig_140["row"].material_description)}'
+        ),
+        work_center=first["row"].work_center,
+        line=first["line"],
+        text=collapse_spaces(first["row"].text),
+        status=status,
+        review_reason="; ".join(reasons),
+        include=(status == "matched"),
+        product=FIG_COMBINED_NAME,
+        job_number=main_job,
+        act_qty=qty_230,  # 230g drives the sheet (and punnet calc)
+        needs_punnets=needs_pun,
+        punnet_material=punnet_material,
+        punnet_qty=punnet_qty,
+        multiplier=mult,
+        additional_jobs=additional,
+        was_matched=fig_230["matched"] and fig_140["matched"],
+    )
+
+
 def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
     """Match, enrich and merge raw SAP rows into PD080 job sheets."""
 
     # 1) Enrich each raw row with match + punnet info.
     enriched = []
-    for row in raw_rows:
+    for idx, row in enumerate(raw_rows):
         result = match_description(row.material_description)
         rule = result.rule if result.matched else None
 
@@ -153,6 +236,7 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
 
         enriched.append(
             {
+                "idx": idx,  # original SAP order, used to keep output ordering
                 "row": row,
                 "matched": result.matched,
                 "score": result.score,
@@ -166,17 +250,27 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
             }
         )
 
+    # Special-case: combine the 230g + 140g Fig rows into one sheet (when both
+    # are present). Those rows are then excluded from the generic merge below.
+    fig_230, fig_140 = _find_fig_pair(enriched)
+    fig_merge = fig_230 is not None and fig_140 is not None
+    fig_excluded = {id(fig_230), id(fig_140)} if fig_merge else set()
+
     # 2) Merge rows that represent the same job/product/line/type.
     groups: dict[tuple, list[dict]] = {}
     order: list[tuple] = []
     for e in enriched:
+        if id(e) in fig_excluded:
+            continue
         key = _merge_key(e["line"], e["product_norm"], e["needs_pun"])
         if key not in groups:
             groups[key] = []
             order.append(key)
         groups[key].append(e)
 
-    sheets: list[JobSheet] = []
+    # Collect (sort_index, sheet) so the combined Fig sheet can be slotted back
+    # into SAP order by its first source row.
+    built: list[tuple[int, JobSheet]] = []
     for key in order:
         members = groups[key]
         total_qty = sum(m["row"].act_qty for m in members)
@@ -237,26 +331,37 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
 
         status = "needs_review" if reasons else "matched"
 
-        sheets.append(
-            JobSheet(
-                id=uuid.uuid4().hex[:8],
-                raw_description=collapse_spaces(main["row"].material_description),
-                work_center=main["row"].work_center,
-                line=main["line"],
-                text=collapse_spaces(main["row"].text),
-                status=status,
-                review_reason="; ".join(reasons),
-                include=(status == "matched"),
-                product=main["product"],
-                job_number=main_job,
-                act_qty=total_qty,
-                needs_punnets=needs_pun,
-                punnet_material=punnet_material,
-                punnet_qty=punnet_qty,
-                multiplier=mult,
-                additional_jobs=additional,
-                was_matched=main["matched"],
+        sort_index = min(m["idx"] for m in members)
+        built.append(
+            (
+                sort_index,
+                JobSheet(
+                    id=uuid.uuid4().hex[:8],
+                    raw_description=collapse_spaces(main["row"].material_description),
+                    work_center=main["row"].work_center,
+                    line=main["line"],
+                    text=collapse_spaces(main["row"].text),
+                    status=status,
+                    review_reason="; ".join(reasons),
+                    include=(status == "matched"),
+                    product=main["product"],
+                    job_number=main_job,
+                    act_qty=total_qty,
+                    needs_punnets=needs_pun,
+                    punnet_material=punnet_material,
+                    punnet_qty=punnet_qty,
+                    multiplier=mult,
+                    additional_jobs=additional,
+                    was_matched=main["matched"],
+                ),
             )
         )
 
-    return sheets
+    # Slot the combined Fig sheet in at its first source row's position.
+    if fig_merge:
+        built.append(
+            (min(fig_230["idx"], fig_140["idx"]), _make_fig_sheet(fig_230, fig_140))
+        )
+
+    built.sort(key=lambda pair: pair[0])
+    return [sheet for _, sheet in built]
