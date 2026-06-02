@@ -208,6 +208,13 @@ def init_db():
         db.commit()
 
 
+# Create all tables on startup (runs AFTER every model class above is defined,
+# so the metadata is complete). On a fresh SQLite DB — e.g. a new Docker
+# container on Render — this auto-creates the schema and seeds the location
+# grid. It is idempotent: existing tables/data are left untouched.
+init_db()
+
+
 def parse_location(code: str):
     if not code:
         return None
