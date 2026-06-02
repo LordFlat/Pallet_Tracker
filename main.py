@@ -161,6 +161,7 @@ def get_active_operators(db, minutes: int = 30):
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
     return templates.TemplateResponse(
+        request,
         "login.html",
         {"request": request, "error": "", "names": list(OPERATORS.keys())},
     )
@@ -173,6 +174,7 @@ def login_submit(request: Request, name: str = Form(...), pin: str = Form(...)):
 
     if name not in OPERATORS or OPERATORS[name] != pin:
         return templates.TemplateResponse(
+            request,
             "login.html",
             {"request": request, "error": "Wrong name or PIN", "names": list(OPERATORS.keys())},
         )
@@ -286,6 +288,7 @@ def history(
         events = db.execute(q).scalars().all()
 
     return templates.TemplateResponse(
+        request,
         "history.html",
         {"request": request, "events": events, "since": since},
     )
@@ -414,6 +417,7 @@ def dashboard(
             total = db.execute(total_q).scalar_one()
 
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
                 "request": request,
@@ -443,6 +447,7 @@ def add_form(
         zones = db.query(Zone).all()   # ← ДОБАВИЛИ
 
         return templates.TemplateResponse(
+            request,
             "add.html",
             {
                 "request": request,
@@ -489,6 +494,7 @@ def add_pallet(
         zone = db.get(Zone, zone_id)
         if not zone:
             return templates.TemplateResponse(
+                request,
                 "add.html",
                 {
                     "request": request,
@@ -507,6 +513,7 @@ def add_pallet(
             loc = find_location(db, values["location_code"])
             if not loc:
                 return templates.TemplateResponse(
+                    request,
                     "add.html",
                     {
                         "request": request,
@@ -525,6 +532,7 @@ def add_pallet(
 
             if exists:
                 return templates.TemplateResponse(
+                    request,
                     "add.html",
                     {
                         "request": request,
@@ -614,6 +622,7 @@ def move_form(
         zones = db.query(Zone).all()
 
         return templates.TemplateResponse(
+            request,
             "move.html",
             {
                 "request": request,
@@ -659,6 +668,7 @@ def move_submit(
             target = find_location(db, to_location)
             if not target:
                 return templates.TemplateResponse(
+                    request,
                     "move.html",
                     {
                         "request": request,
@@ -677,6 +687,7 @@ def move_submit(
 
             if occupied:
                 return templates.TemplateResponse(
+                    request,
                     "move.html",
                     {
                         "request": request,
@@ -724,6 +735,7 @@ async def import_csv(
 
     if not file.filename.endswith(".csv"):
         return templates.TemplateResponse(
+            request,
             "import_result.html",
             {
                 "request": request,
@@ -773,6 +785,7 @@ async def import_csv(
         db.commit()
 
     return templates.TemplateResponse(
+        request,
         "import_result.html",
         {
             "request": request,

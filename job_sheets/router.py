@@ -36,6 +36,7 @@ def upload_page(request: Request, operator: str | None = Cookie(default=None)):
     if (redir := _require_operator(operator)) is not None:
         return redir
     return templates.TemplateResponse(
+        request,
         "job_sheets/upload.html",
         {"request": request, "error": "", "sap_text": "", "notice": ""},
     )
@@ -53,6 +54,7 @@ async def upload_submit(
 
     def render_upload(error: str = "", text: str = "", notice: str = ""):
         return templates.TemplateResponse(
+            request,
             "job_sheets/upload.html",
             {"request": request, "error": error, "sap_text": text, "notice": notice},
         )
@@ -147,6 +149,7 @@ def review_page(
         return RedirectResponse("/job-sheets", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "job_sheets/review.html",
         {
             "request": request,
@@ -209,6 +212,7 @@ async def generate(
 
     def review_error(message: str):
         return templates.TemplateResponse(
+            request,
             "job_sheets/review.html",
             {
                 "request": request,
