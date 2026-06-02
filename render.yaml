@@ -1,0 +1,17 @@
+# Render Blueprint: build via Docker so apt packages (tesseract-ocr,
+# libreoffice) are installed before pip — see Dockerfile.
+#
+# Deploy options:
+#   * Blueprint: "New +" -> "Blueprint" and point at this repo, OR
+#   * Existing service: Settings -> Runtime = "Docker" (so the Dockerfile is used
+#     instead of the native Python build that ignored apt.txt).
+services:
+  - type: web
+    name: pallet-tracker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # LibreOffice/soffice needs memory to convert PDFs; the free tier (512 MB)
+    # can OOM during conversion. Bump if combined-PDF generation fails.
+    plan: starter
+    healthCheckPath: /login
+    autoDeploy: true

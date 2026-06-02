@@ -1,0 +1,7 @@
+# Keep the build context (and image) small; never ship local state.
+.git/
+.venv/
+__pycache__/
+*.pyc
+app.db
+*.md
