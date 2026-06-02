@@ -2,12 +2,13 @@
 
 Allowed work centers (MVP):
     FLOW 5, FLOW 7, LINERLESS,
-    TOP SEAL, TOP SEAL 2, TOP SEAL 4, TOP SEAL 5, TOP SEAL 6, TOP SEAL 7
+    TOP SEAL and all numbered top sealers, written either "TOP SEAL n" or
+    "TP SEAL n" (e.g. TP SEAL2, TP SEAL4, TP SEAL5, TP SEAL6, TP SEAL7).
 
 Ignored: GIRO 3/4/5, MPACK, H/LINES, OFF SITE and everything else.
 
 Output line normalization:
-    FLOW 5 -> F5, FLOW 7 -> F7, LINERLESS -> LL, any TOP SEAL* -> TS
+    FLOW 5 -> F5, FLOW 7 -> F7, LINERLESS -> LL, any TOP/TP SEAL* -> TS
 """
 
 from __future__ import annotations
@@ -21,6 +22,11 @@ EXPLICIT_LINES = {
     "FLOW 7": "F7",
     "LINERLESS": "LL",
 }
+
+# Compact (space-stripped, upper-cased) prefixes for the top-sealer lines. SAP
+# writes these as both "TOP SEAL n" and "TP SEAL n"; both are in scope and map
+# to the same "TS" line code.
+_TOP_SEAL_PREFIXES = ("TOPSEAL", "TPSEAL")
 
 
 def _canonical(work_center: str) -> str:
@@ -49,7 +55,7 @@ def is_allowed(work_center: str) -> bool:
         return False
     if compact.startswith("LINER"):  # LINERLESS (and OCR-truncated variants)
         return True
-    if compact.startswith("TOPSEAL"):  # TOP SEAL, TOP SEAL 2, ...
+    if compact.startswith(_TOP_SEAL_PREFIXES):  # TOP SEAL / TP SEAL (+ numbers)
         return True
     if compact.startswith("FLOW"):
         d = _flow_digit(compact)
@@ -63,7 +69,7 @@ def normalize_line(work_center: str) -> str:
     compact = _compact(work_center)
     if compact.startswith("LINER"):
         return "LL"
-    if compact.startswith("TOPSEAL"):
+    if compact.startswith(_TOP_SEAL_PREFIXES):
         return "TS"
     if compact.startswith("FLOW"):
         return "F7" if _flow_digit(compact) == "7" else "F5"
