@@ -6,3 +6,8 @@ openpyxl
 
 python-multipart
 psycopg2-binary
+rapidfuzz
+pytesseract
+Pillow
+opencv-python-headless
+numpy

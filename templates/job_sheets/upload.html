@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% set title = "Job Sheets" %}
+
+{% block content %}
+
+<div class="w-full space-y-6">
+
+  <div class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+    <h2 class="text-xl font-semibold">Job Sheets — prepare PD080 sheets</h2>
+    <p class="text-slate-500 text-sm mt-1">
+      Upload a SAP production plan screenshot, or paste the SAP table text, to
+      prepare PD080 Packaging Sign Out &amp; In Record sheets.
+    </p>
+
+    {% if error %}
+      <div class="mt-4 bg-red-100 text-red-900 border border-red-200 rounded-2xl px-4 py-3 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    {% if notice %}
+      <div class="mt-4 bg-sky-100 text-sky-900 border border-sky-200 rounded-2xl px-4 py-3 text-sm">
+        {{ notice }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/job-sheets/upload" enctype="multipart/form-data" class="mt-6 space-y-5">
+
+      <!-- SCREENSHOT (optional, pluggable OCR) -->
+      <div>
+        <label class="text-sm text-slate-600">SAP plan screenshot (optional)</label>
+        <input type="file" name="screenshot" accept="image/*"
+               class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50" />
+        <p class="text-xs text-slate-400 mt-1">
+          The screenshot is read with local OCR (Tesseract). If confidence is
+          low the extracted text appears below for you to correct before
+          processing. Requires Tesseract installed on the server.
+        </p>
+      </div>
+
+      <!-- PASTED TEXT -->
+      <div>
+        <label class="text-sm text-slate-600">Paste SAP table</label>
+        <textarea name="sap_text" rows="10"
+                  placeholder="Material Description	Text	Work Center	Prod. Order	Act.Qty&#10;GRAPE SELECTION PACK 8X800g H/S pun	Change to Punnets	TOP SEAL	1683086	35&#10;GRAPE SELECTION PACK 8X800g H/S pun	Change to Punnets	TOP SEAL	1683088	60"
+                  class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">{{ sap_text }}</textarea>
+        <p class="text-xs text-slate-400 mt-1">
+          Include a header row, or keep columns in order:
+          Material Description, Text, Work Center, Prod. Order, Act.Qty.
+          Columns may be separated by tabs, pipes, commas or 2+ spaces.
+          Only allowed lines (FLOW 5/7, LINERLESS, TOP SEAL*) are kept.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 text-white hover:opacity-90 transition">
+          Process plan
+        </button>
+        <a href="/"
+           class="w-full sm:w-auto text-center px-6 py-3 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}

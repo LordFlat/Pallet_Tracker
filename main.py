@@ -63,6 +63,10 @@ from fastapi.staticfiles import StaticFiles
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Job Sheets module (PD080 sheet preparation from SAP plans).
+from job_sheets import router as job_sheets_router
+app.include_router(job_sheets_router)
+
 class Location(Base):
     __tablename__ = "locations"
     id = Column(Integer, primary_key=True)

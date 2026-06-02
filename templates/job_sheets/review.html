@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% set title = "Job Sheets — Review" %}
+
+{% block content %}
+
+<div class="w-full space-y-6">
+
+  <div class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h2 class="text-xl font-semibold">Review &amp; edit job sheets</h2>
+        <p class="text-slate-500 text-sm mt-1">
+          Check matches, fix anything uncertain, then generate the combined PD080 PDF.
+          Rows flagged <span class="font-medium text-amber-700">needs review</span>
+          must be fixed (and confirmed) or excluded before generating.
+        </p>
+      </div>
+      <a href="/job-sheets"
+         class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:shadow-sm text-sm">
+        ← New upload
+      </a>
+    </div>
+
+    {% if error %}
+      <div class="mt-4 bg-amber-100 text-amber-900 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/job-sheets/generate/{{ batch_id }}" class="mt-6">
+
+      <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-100 text-slate-600">
+            <tr class="text-left">
+              <th class="px-3 py-2">Inc.</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">Raw description</th>
+              <th class="px-3 py-2">Product (Using Name)</th>
+              <th class="px-3 py-2">WC / Line</th>
+              <th class="px-3 py-2">Text</th>
+              <th class="px-3 py-2">Job #</th>
+              <th class="px-3 py-2">Act.Qty</th>
+              <th class="px-3 py-2">Punnets?</th>
+              <th class="px-3 py-2">Punnet material</th>
+              <th class="px-3 py-2">Punnet Qty</th>
+              <th class="px-3 py-2">Suffix</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for s in sheets %}
+            <tr class="{{ 'bg-amber-50' if s.status == 'needs_review' else '' }} align-top">
+              <!-- include -->
+              <td class="px-3 py-2">
+                <input type="checkbox" name="include_{{ s.id }}" {{ 'checked' if s.include else '' }}
+                       class="w-4 h-4" />
+              </td>
+
+              <!-- status -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                {% if s.status == 'matched' %}
+                  <span class="px-2 py-1 rounded-lg bg-green-100 text-green-800 text-xs">matched</span>
+                {% else %}
+                  <span class="px-2 py-1 rounded-lg bg-amber-200 text-amber-900 text-xs">needs review</span>
+                  <div class="text-xs text-amber-700 mt-1 max-w-[12rem]">{{ s.review_reason }}</div>
+                  {% if not s.was_matched %}
+                  <label class="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                    <input type="checkbox" name="confirm_{{ s.id }}" {{ 'checked' if s.confirmed else '' }} />
+                    Confirm product
+                  </label>
+                  {% endif %}
+                {% endif %}
+              </td>
+
+              <!-- raw description -->
+              <td class="px-3 py-2 text-slate-500 max-w-[14rem]">{{ s.raw_description }}</td>
+
+              <!-- product -->
+              <td class="px-3 py-2">
+                <input type="text" name="product_{{ s.id }}" value="{{ s.product }}"
+                       class="w-40 px-2 py-1 rounded-lg border border-slate-200" />
+              </td>
+
+              <!-- work center / line -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <div class="text-xs text-slate-400">{{ s.work_center }}</div>
+                <input type="text" name="line_{{ s.id }}" value="{{ s.line }}"
+                       class="w-16 px-2 py-1 rounded-lg border border-slate-200 font-mono" />
+              </td>
+
+              <!-- text -->
+              <td class="px-3 py-2 text-slate-500 max-w-[10rem]">{{ s.text }}</td>
+
+              <!-- job number -->
+              <td class="px-3 py-2">
+                <input type="text" name="job_{{ s.id }}" value="{{ s.job_number }}"
+                       class="w-24 px-2 py-1 rounded-lg border border-slate-200 font-mono" />
+              </td>
+
+              <!-- act qty -->
+              <td class="px-3 py-2">
+                <input type="number" step="any" name="act_qty_{{ s.id }}" value="{{ s.act_qty }}"
+                       class="w-20 px-2 py-1 rounded-lg border border-slate-200" />
+              </td>
+
+              <!-- punnets? -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                {% if s.needs_punnets %}
+                  <span class="px-2 py-1 rounded-lg bg-sky-100 text-sky-800 text-xs">yes</span>
+                {% else %}
+                  <span class="text-slate-400 text-xs">no</span>
+                {% endif %}
+              </td>
+
+              <!-- punnet material -->
+              <td class="px-3 py-2">
+                <input type="text" name="punnet_material_{{ s.id }}" value="{{ s.punnet_material }}"
+                       {{ 'disabled' if not s.needs_punnets else '' }}
+                       class="w-28 px-2 py-1 rounded-lg border border-slate-200 disabled:bg-slate-50" />
+              </td>
+
+              <!-- punnet qty -->
+              <td class="px-3 py-2">
+                <input type="number" name="punnet_qty_{{ s.id }}"
+                       value="{{ s.punnet_qty if s.punnet_qty is not none else '' }}"
+                       {{ 'disabled' if not s.needs_punnets else '' }}
+                       class="w-20 px-2 py-1 rounded-lg border border-slate-200 disabled:bg-slate-50" />
+              </td>
+
+              <!-- suffix -->
+              <td class="px-3 py-2 font-mono text-slate-500 whitespace-nowrap">{{ s.header_suffix }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-6">
+        <button type="submit" name="fmt" value="pdf" {{ '' if pdf_ready else 'disabled' }}
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+          Generate combined PDF (one file, page per sheet)
+        </button>
+        <button type="submit" name="fmt" value="xlsx"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-slate-200 hover:shadow-sm transition">
+          Generate combined workbook (XLSX)
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">
+        One file for the whole batch — every included job becomes one print-ready
+        PD080 page (real template: logo, borders, fit-to-one-page), in SAP order.
+        {% if pdf_ready %}
+          The combined PDF is ready to print directly.
+        {% else %}
+          <span class="text-amber-600">Combined PDF needs LibreOffice or Excel installed on this machine;
+          until then use the XLSX (also one file, one sheet per job).</span>
+        {% endif %}
+      </p>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}
