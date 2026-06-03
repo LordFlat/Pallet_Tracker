@@ -9,7 +9,8 @@ Ignored: GIRO 3/4/5, MPACK, H/LINES, OFF SITE and everything else.
 
 Output line normalization (the real top-sealer number is preserved):
     FLOW 5 -> F5, FLOW 7 -> F7, LINERLESS -> LL,
-    TOP SEAL -> TS, TP SEAL2 -> TS2, TP SEAL4 -> TS4, ... TP SEAL7 -> TS7
+    TOP SEAL -> TS, TP SEAL2 -> TS2, TP SEAL4 -> TS4, TP SEAL5 -> TS5,
+    TP SEAL6 -> TS6, TP SEAL7 -> TS7
 """
 
 from __future__ import annotations
@@ -46,9 +47,10 @@ def _flow_digit(compact: str) -> str | None:
 
 
 def _seal_code(compact: str) -> str | None:
-    """Top-sealer line code preserving its number: TS, TS2, TS4, ... or None.
+    """Top-sealer line code preserving its number: TS, TS2, TS4, TS5, TS6,
+    TS7, ... or None.
 
-    "TOP SEAL"/"TP SEAL" with no number -> "TS"; "TP SEAL2" -> "TS2", etc.
+    "TOP SEAL"/"TP SEAL" with no number -> "TS"; "TP SEAL5" -> "TS5", etc.
     """
     for prefix in _TOP_SEAL_PREFIXES:
         if compact.startswith(prefix):
