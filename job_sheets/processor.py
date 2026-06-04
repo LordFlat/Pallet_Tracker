@@ -170,10 +170,17 @@ class JobSheet:
 
         if self.kind == "giro":
             front, back, net = GIRO_ROWS
+            # Front/Back/Net may be intentionally blank. Skip the blank ones so
+            # their template row is left completely empty (no line/trace/job and
+            # no placeholder text) — the kept rows stay pinned to 5/12/19.
             return [
-                make(front, self.giro_front),
-                make(back, self.giro_back),
-                make(net, self.giro_net),
+                make(row, value)
+                for row, value in (
+                    (front, self.giro_front),
+                    (back, self.giro_back),
+                    (net, self.giro_net),
+                )
+                if value.strip()
             ]
         if self.kind == "mpack":
             # The job/product name repeated on the first two template rows.
@@ -414,9 +421,11 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
                 f"No confident {where} (best {main['score']:.0f}%) — check product"
             )
         elif kind == "giro" and not (
-            main["giro_front"] and main["giro_back"] and main["giro_net"]
+            main["giro_front"] or main["giro_back"] or main["giro_net"]
         ):
-            reasons.append("GIRO rule is missing a Front / Back / Net value — verify")
+            # A blank Front/Back/Net is valid and intentional; only an entirely
+            # empty rule (all three blank) signals a bad/unfilled rule.
+            reasons.append("GIRO rule has no Front / Back / Net values — verify")
         # A missing Prod.Order is allowed: Job Number is simply left blank.
         # Act.Qty rules: unreadable -> review; an explicit 0 is acceptable.
         if any_unreadable:

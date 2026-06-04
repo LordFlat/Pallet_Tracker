@@ -28,6 +28,15 @@ RULES_PATH = (
     Path(__file__).resolve().parent.parent / "resources" / "rules" / "Giro.xlsx"
 )
 
+# Front/Back/Net may be intentionally blank. Operators and spreadsheet exports
+# sometimes type a placeholder to MEAN blank; treat those as empty so they never
+# reach the PD080 template as literal text.
+_BLANK_TOKENS = {"none", "nan", "n/a", "-", "–", "—"}
+
+
+def _blank_if_placeholder(value: str) -> str:
+    return "" if value.strip().lower() in _BLANK_TOKENS else value
+
 
 @dataclass
 class GiroRule:
@@ -104,9 +113,9 @@ def load_rules() -> tuple[GiroRule, ...]:
                 GiroRule(
                     material_description=desc,
                     using_name=cell(row, "using"),
-                    front=cell(row, "front"),
-                    back=cell(row, "back"),
-                    net=cell(row, "net"),
+                    front=_blank_if_placeholder(cell(row, "front")),
+                    back=_blank_if_placeholder(cell(row, "back")),
+                    net=_blank_if_placeholder(cell(row, "net")),
                     normalized=normalize(desc),
                 )
             )

@@ -107,6 +107,47 @@ def test_giro_front_back_net():
     print("ok test_giro_front_back_net")
 
 
+def test_giro_blank_value_leaves_row_empty():
+    """A blank Front/Back/Net is intentional: leave that template row empty.
+
+    Builds a GIRO sheet, then blanks the Back value to mimic a rule whose Back
+    column is intentionally empty. The Back row (12) must carry NO line code,
+    product, trace or placeholder — while Front (5) and Net (19) are unaffected.
+    """
+    text = "\n".join([
+        "Material Description\tText\tWork Center\tProd. Order\tAct.Qty",
+        "Lime - 12X5\t\tGIRO 5\t1683010\t40",
+    ])
+    s = process_rows(parse_pasted_rows(text))[0]
+    s.giro_back = ""  # intentionally-blank Back column
+
+    # Only the populated rows are emitted; the blank one is skipped entirely.
+    rows = s.sheet_rows()
+    assert [r["row"] for r in rows] == [5, 19]
+    assert s.status == "matched"  # a blank value must NOT trigger review
+
+    xlsx = generate_xlsx([s])
+    ws = openpyxl.load_workbook(io.BytesIO(xlsx)).active
+    cells = _cells(ws)
+    # Front + Net present and pinned to their rows...
+    assert cells.get("C5") == "Ess Limes" and cells.get("C19") == "Green Net"
+    # ...the blank Back row is completely empty — no value bled in.
+    for coord in ("B12", "C12", "D12", "E12"):
+        assert coord not in cells, f"{coord} should be empty, got {cells.get(coord)!r}"
+    print("ok test_giro_blank_value_leaves_row_empty")
+
+
+def test_giro_placeholder_tokens_treated_as_blank():
+    """Literal placeholder text in a rule cell is normalised to blank."""
+    from job_sheets.giro_rules import _blank_if_placeholder
+    for token in ("None", "nan", "N/A", "-", "  -  ", "—"):
+        assert _blank_if_placeholder(token) == "", f"{token!r} should become blank"
+    # Real values are untouched.
+    assert _blank_if_placeholder("Mini E/P") == "Mini E/P"
+    assert _blank_if_placeholder("Red") == "Red"
+    print("ok test_giro_placeholder_tokens_treated_as_blank")
+
+
 def test_giro_merge_same_product():
     text = "\n".join([
         "Material Description\tText\tWork Center\tProd. Order\tAct.Qty",
@@ -193,6 +234,8 @@ def main():
     test_topseal_still_works()
     test_mpack_two_rows_and_merge()
     test_giro_front_back_net()
+    test_giro_blank_value_leaves_row_empty()
+    test_giro_placeholder_tokens_treated_as_blank()
     test_giro_merge_same_product()
     test_generated_date_is_tomorrow_in_xlsx()
     test_xlsx_layout_matches_examples()
