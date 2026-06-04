@@ -38,7 +38,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -122,6 +122,26 @@ def _copy_cell_format(src, dst) -> None:
     dst.alignment = copy.copy(src.alignment)
 
 
+def _style_job_cell(cell, ref) -> None:
+    """Style a Job Number cell to match the rest of the sheet, but auto-fit.
+
+    * Font family/style is copied from ``ref`` (the bold Calibri 14 product
+      cell) so the Job Number looks visually consistent with the other entries.
+    * ``shrink_to_fit`` lets Excel/LibreOffice automatically scale the text down
+      when a long Prod.Order would otherwise overflow the cell — it never wraps
+      onto a second line and never spills past the border, keeping the printed
+      layout clean. Short job numbers stay at the full font size.
+    """
+    cell.font = copy.copy(ref.font)
+    keep = cell.alignment
+    cell.alignment = Alignment(
+        horizontal=keep.horizontal or "center",
+        vertical=keep.vertical or "center",
+        shrink_to_fit=True,
+        wrap_text=False,
+    )
+
+
 def _apply_page_setup(ws) -> None:
     """Force the sheet to print as exactly ONE landscape A4 page.
 
@@ -144,21 +164,26 @@ def _fill_sheet(ws, sheet: JobSheet, date_str: str) -> None:
     b1 = ws["B1"]
     b1.alignment = Alignment(horizontal="left", vertical="center")
 
-    lines = sheet.product_lines()
-    for index, line in enumerate(lines):
-        r = MAIN_ROW if index == 0 else PUNNET_ROW
+    # Each row carries its own template row number (set per line family in
+    # JobSheet.sheet_rows): standard = rows 5/12, MPACK = rows 5/6,
+    # GIRO = rows 5/12/19 (Front/Back/Net).
+    for line in sheet.sheet_rows():
+        r = line["row"]
         ws[f"B{r}"] = line["line"]
         ws[f"C{r}"] = line["product"]
         ws[f"D{r}"] = line["trace"]
         # Job Number comes ONLY from Prod.Order: leave the cell blank if absent.
         if line["job"]:
             ws[f"E{r}"] = line["job"]
+            # Match the bold product font, then shrink-to-fit so long Prod.Orders
+            # stay inside the cell without wrapping or overflowing the border.
+            _style_job_cell(ws[f"E{r}"], ws[f"C{MAIN_ROW}"])
         # Qty only on the punnet/material row.
         if line["qty"]:
             ws[f"{QTY_COLUMN}{r}"] = (
                 int(line["qty"]) if str(line["qty"]).isdigit() else line["qty"]
             )
-        # Make the punnet row look like the main row (bold product/line/trace).
+        # Make every extra row look like the main row (bold product/line/trace).
         if r != MAIN_ROW:
             for col in ("B", "C", "D"):
                 _copy_cell_format(ws[f"{col}{MAIN_ROW}"], ws[f"{col}{r}"])
@@ -180,8 +205,10 @@ def generate_xlsx(sheets: list[JobSheet]) -> bytes:
     for _ in range(1, max(1, len(sheets))):
         targets.append(base.copy_worksheet(template_ws))
 
-    # Print date written into every banner (current date, dd.mm.yy as in example).
-    date_str = datetime.now().strftime("%d.%m.%y")
+    # Date written into every banner. Picking is always done for the NEXT day,
+    # so the sheet date is ALWAYS tomorrow (current date + 1 day), never today,
+    # never a SAP/template date. dd.mm.yy as in the example golden files.
+    date_str = (datetime.now() + timedelta(days=1)).strftime("%d.%m.%y")
 
     # Persist logos to temp files so openpyxl can read them reliably at save.
     tmp_files: list[str] = []

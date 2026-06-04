@@ -9,13 +9,25 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 
-from .lines import normalize_line
+from .giro_rules import match_giro
+from .lines import line_kind, normalize_line
 from .matcher import match_description
 from .parser import RawRow
 from .text_utils import collapse_spaces, first_multiplier, last4, normalize, valid_prod_order
 
 TRACE_CODE = "47/"  # MVP: always 47/. No trace-code database yet.
 PUNNET_BUFFER = 300  # added on top of multiplier * total qty
+
+# PD080 template data rows (see resources/templates/PD080.xlsx and the
+# resources/example/*.xlsx golden files). The grid is rows 5-21; the footer
+# starts at row 22. Layout differs per line family:
+#   standard (TOP SEAL / FLOW / LINERLESS): main row 5, optional punnet row 12.
+#   MPACK: the product name repeated on rows 5 and 6.
+#   GIRO: Front on row 5, Back on row 12, Net on the penultimate row 19.
+MAIN_ROW = 5
+PUNNET_ROW = MAIN_ROW + 7  # 12 — 7-row gap leaves rows 6-11 blank for additions
+MPACK_SECOND_ROW = 6
+GIRO_ROWS = (5, 12, 19)
 
 # Act.Qty values above this are treated as OCR failures (a number from another
 # column — For.Qty/Cust.Qty/Yield/time — bleeding into Act.Qty). Such rows are
@@ -56,6 +68,16 @@ class JobSheet:
     punnet_material: str
     punnet_qty: int | None
     multiplier: int | None
+
+    # Layout family: "standard" (TOP SEAL / FLOW / LINERLESS) | "giro" | "mpack".
+    kind: str = "standard"
+
+    # GIRO-only values, taken verbatim from the GIRO rules file (never guessed
+    # from the product description). ``giro_net`` is display-ready, e.g.
+    # "Green Net".
+    giro_front: str = ""
+    giro_back: str = ""
+    giro_net: str = ""
 
     # Merge bookkeeping.
     additional_jobs: list[str] = field(default_factory=list)
@@ -128,9 +150,50 @@ class JobSheet:
             )
         return rows
 
+    def sheet_rows(self) -> list[dict]:
+        """Rows to write into the PD080 grid, each pinned to a template row.
 
-def _merge_key(line: str, product_norm: str, needs_punnets: bool) -> tuple:
-    return (line, product_norm, "punnet" if needs_punnets else "standard")
+        This is the single source of truth for *where* each value lands, so the
+        generator stays a dumb writer. The dicts carry the same keys as
+        :meth:`product_lines` plus ``"row"`` (the 1-based template row number).
+        """
+
+        def make(row: int, product: str, qty: str = "") -> dict:
+            return {
+                "row": row,
+                "line": self.line,
+                "product": product,
+                "trace": self.traceability,
+                "job": self.job_number,
+                "qty": qty,
+            }
+
+        if self.kind == "giro":
+            front, back, net = GIRO_ROWS
+            return [
+                make(front, self.giro_front),
+                make(back, self.giro_back),
+                make(net, self.giro_net),
+            ]
+        if self.kind == "mpack":
+            # The job/product name repeated on the first two template rows.
+            return [make(MAIN_ROW, self.product), make(MPACK_SECOND_ROW, self.product)]
+
+        # Standard TOP SEAL / FLOW / LINERLESS: main row + optional punnet row.
+        rows = [make(MAIN_ROW, self.product)]
+        if self.needs_punnets and self.punnet_material:
+            rows.append(
+                make(
+                    PUNNET_ROW,
+                    self.punnet_material,
+                    "" if self.punnet_qty is None else str(self.punnet_qty),
+                )
+            )
+        return rows
+
+
+def _merge_key(kind: str, line: str, product_norm: str, needs_punnets: bool) -> tuple:
+    return (kind, line, product_norm, "punnet" if needs_punnets else "standard")
 
 
 # Special-case combine: the 230g and 140g Fig rows are prepared as a single
@@ -222,24 +285,56 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
     # 1) Enrich each raw row with match + punnet info.
     enriched = []
     for idx, row in enumerate(raw_rows):
-        result = match_description(row.material_description)
-        rule = result.rule if result.matched else None
-
-        product = rule.using_name if rule else collapse_spaces(row.material_description)
-        product_norm = normalize(product) or normalize(row.material_description)
-        needs_pun = requires_punnets(row.text)
+        kind = line_kind(row.work_center)
         line = normalize_line(row.work_center)
-        mult = first_multiplier(
-            rule.material_description if rule else "", row.material_description
-        )
-        punnet_material = (rule.punnets if rule else None) or ""
+
+        # Defaults for the punnet machinery and GIRO Front/Back/Net. GIRO and
+        # MPACK never carry punnets; GIRO supplies its three values from its
+        # own rules file (the source of truth — never guessed from the SAP
+        # description).
+        needs_pun = False
+        mult = None
+        punnet_material = ""
+        giro_front = giro_back = giro_net = ""
+
+        if kind == "giro":
+            gm = match_giro(row.material_description)
+            rule = gm.rule
+            matched = gm.matched
+            score = gm.score
+            product = (rule.using_name if rule else "") or collapse_spaces(
+                row.material_description
+            )
+            if rule:
+                giro_front = rule.front
+                giro_back = rule.back
+                giro_net = f"{rule.net} Net" if rule.net else ""
+        else:
+            result = match_description(row.material_description)
+            rule = result.rule if result.matched else None
+            matched = result.matched
+            score = result.score
+            product = (
+                rule.using_name if rule else collapse_spaces(row.material_description)
+            )
+            if kind == "standard":
+                # MPACK is intentionally simple (product name only); the punnet
+                # machinery applies to standard TOP SEAL / FLOW / LINERLESS rows.
+                needs_pun = requires_punnets(row.text)
+                mult = first_multiplier(
+                    rule.material_description if rule else "", row.material_description
+                )
+                punnet_material = (rule.punnets if rule else None) or ""
+
+        product_norm = normalize(product) or normalize(row.material_description)
 
         enriched.append(
             {
                 "idx": idx,  # original SAP order, used to keep output ordering
                 "row": row,
-                "matched": result.matched,
-                "score": result.score,
+                "kind": kind,
+                "matched": matched,
+                "score": score,
                 "rule": rule,
                 "product": product,
                 "product_norm": product_norm,
@@ -247,6 +342,9 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
                 "line": line,
                 "mult": mult,
                 "punnet_material": punnet_material,
+                "giro_front": giro_front,
+                "giro_back": giro_back,
+                "giro_net": giro_net,
             }
         )
 
@@ -262,7 +360,7 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
     for e in enriched:
         if id(e) in fig_excluded:
             continue
-        key = _merge_key(e["line"], e["product_norm"], e["needs_pun"])
+        key = _merge_key(e["kind"], e["line"], e["product_norm"], e["needs_pun"])
         if key not in groups:
             groups[key] = []
             order.append(key)
@@ -308,11 +406,17 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
         any_unreadable = any(not m["row"].act_qty_ok for m in members)
         max_member_qty = max((m["row"].act_qty for m in members), default=0)
 
+        kind = main["kind"]
         reasons: list[str] = []
         if not main["matched"]:
+            where = "GIRO rule" if kind == "giro" else "match"
             reasons.append(
-                f"No confident match (best {main['score']:.0f}%) — check product"
+                f"No confident {where} (best {main['score']:.0f}%) — check product"
             )
+        elif kind == "giro" and not (
+            main["giro_front"] and main["giro_back"] and main["giro_net"]
+        ):
+            reasons.append("GIRO rule is missing a Front / Back / Net value — verify")
         # A missing Prod.Order is allowed: Job Number is simply left blank.
         # Act.Qty rules: unreadable -> review; an explicit 0 is acceptable.
         if any_unreadable:
@@ -347,6 +451,10 @@ def process_rows(raw_rows: list[RawRow]) -> list[JobSheet]:
                     product=main["product"],
                     job_number=main_job,
                     act_qty=total_qty,
+                    kind=kind,
+                    giro_front=main["giro_front"],
+                    giro_back=main["giro_back"],
+                    giro_net=main["giro_net"],
                     needs_punnets=needs_pun,
                     punnet_material=punnet_material,
                     punnet_qty=punnet_qty,
